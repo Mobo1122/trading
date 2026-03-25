@@ -33,15 +33,15 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. System retrieves complete option chains (all strikes, expirations, contract specs) for any equity, ETF, or futures underlying
   4. Every order state transition (pending, submitted, filled, cancelled, error) is tracked in a local state machine and persisted to the database
   5. PostgreSQL, TimescaleDB, and Redis are running and accessible, with schema migrations applied
-**Plans**: TBD
+**Plans**: 6 plans
 
 Plans:
-- [ ] 01-01: Project scaffolding, dependency management, and configuration system
-- [ ] 01-02: PostgreSQL + TimescaleDB schema and Redis setup
-- [ ] 01-03: IB Gateway connection with auto-reconnect and daily restart handling
-- [ ] 01-04: Option chain retrieval and contract resolution
-- [ ] 01-05: Order state machine and paper/live toggle
-- [ ] 01-06: Kill switch and connection health monitoring
+- [ ] 01-01-PLAN.md — Project scaffolding, dependencies, config system, Docker Compose, paper/live toggle
+- [ ] 01-02-PLAN.md — PostgreSQL + TimescaleDB schema, Alembic migrations, Redis client
+- [ ] 01-03-PLAN.md — IB Gateway connection manager with auto-reconnect and exponential backoff
+- [ ] 01-04-PLAN.md — Option chain retrieval via reqSecDefOptParams with Redis caching
+- [ ] 01-05-PLAN.md — Order state machine (python-statemachine) with DB persistence and IB status mapping
+- [ ] 01-06-PLAN.md — Kill switch, health monitoring, and application lifecycle wiring
 
 ### Phase 2: Market Data & Analytics
 **Goal**: Real-time market data streams from IB into the system, providing quotes, Greeks, IV, and analytical metrics that downstream agents and the risk engine depend on
@@ -182,7 +182,7 @@ Note: Phases 6 and 7 can execute in parallel after Phase 5 completes.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. IB Connectivity & Infrastructure | 0/6 | Not started | - |
+| 1. IB Connectivity & Infrastructure | 0/6 | Planning complete | - |
 | 2. Market Data & Analytics | 0/5 | Not started | - |
 | 3. Risk Engine | 0/6 | Not started | - |
 | 4. Order Execution | 0/4 | Not started | - |
