@@ -12,7 +12,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **CONN-01**: System connects to IB Gateway with auto-reconnect and daily restart handling
 - [ ] **CONN-02**: System places market, limit, and stop orders via IB API
 - [ ] **CONN-03**: System places multi-leg combo/spread orders (up to 6 legs)
-- [ ] **CONN-04**: System tracks order state via local state machine (pending → submitted → filled/cancelled/error)
+- [ ] **CONN-04**: System tracks order state via local state machine (pending -> submitted -> filled/cancelled/error)
 - [ ] **CONN-05**: System toggles between paper and live trading via configuration
 - [ ] **CONN-06**: System retrieves option chains (strikes, expirations, contract specs) for equities, ETFs, and futures
 
@@ -40,7 +40,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **AGENT-02**: Strategist agent constructs trade proposals (strategy type + strike/expiration selection)
 - [ ] **AGENT-03**: Risk manager agent validates trade proposals against all risk rules
 - [ ] **AGENT-04**: Executor agent places validated trades via IB API
-- [ ] **AGENT-05**: Full pipeline runs as scanner → strategist → risk manager → executor via LangGraph orchestration
+- [ ] **AGENT-05**: Full pipeline runs as scanner -> strategist -> risk manager -> executor via LangGraph orchestration
 - [ ] **AGENT-06**: Every agent decision is logged with full reasoning chain in natural language
 - [ ] **AGENT-07**: Scanner detects market regime (bull/bear/sideways/volatile) and adapts strategy mix
 - [ ] **AGENT-08**: System automatically rolls expiring positions to new expiration when appropriate
@@ -98,49 +98,49 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CONN-01 | — | Pending |
-| CONN-02 | — | Pending |
-| CONN-03 | — | Pending |
-| CONN-04 | — | Pending |
-| CONN-05 | — | Pending |
-| CONN-06 | — | Pending |
-| RISK-01 | — | Pending |
-| RISK-02 | — | Pending |
-| RISK-03 | — | Pending |
-| RISK-04 | — | Pending |
-| RISK-05 | — | Pending |
-| RISK-06 | — | Pending |
-| RISK-07 | — | Pending |
-| DATA-01 | — | Pending |
-| DATA-02 | — | Pending |
-| DATA-03 | — | Pending |
-| DATA-04 | — | Pending |
-| DATA-05 | — | Pending |
-| AGENT-01 | — | Pending |
-| AGENT-02 | — | Pending |
-| AGENT-03 | — | Pending |
-| AGENT-04 | — | Pending |
-| AGENT-05 | — | Pending |
-| AGENT-06 | — | Pending |
-| AGENT-07 | — | Pending |
-| AGENT-08 | — | Pending |
-| DASH-01 | — | Pending |
-| DASH-02 | — | Pending |
-| DASH-03 | — | Pending |
-| DASH-04 | — | Pending |
-| DASH-05 | — | Pending |
-| DASH-06 | — | Pending |
-| AUTO-01 | — | Pending |
-| AUTO-02 | — | Pending |
-| AUTO-03 | — | Pending |
-| AUTO-04 | — | Pending |
-| AUTO-05 | — | Pending |
+| CONN-01 | Phase 1 | Pending |
+| CONN-02 | Phase 4 | Pending |
+| CONN-03 | Phase 4 | Pending |
+| CONN-04 | Phase 1 | Pending |
+| CONN-05 | Phase 1 | Pending |
+| CONN-06 | Phase 1 | Pending |
+| RISK-01 | Phase 3 | Pending |
+| RISK-02 | Phase 3 | Pending |
+| RISK-03 | Phase 3 | Pending |
+| RISK-04 | Phase 3 | Pending |
+| RISK-05 | Phase 3 | Pending |
+| RISK-06 | Phase 3 | Pending |
+| RISK-07 | Phase 3 | Pending |
+| DATA-01 | Phase 2 | Pending |
+| DATA-02 | Phase 2 | Pending |
+| DATA-03 | Phase 2 | Pending |
+| DATA-04 | Phase 2 | Pending |
+| DATA-05 | Phase 2 | Pending |
+| AGENT-01 | Phase 5 | Pending |
+| AGENT-02 | Phase 5 | Pending |
+| AGENT-03 | Phase 5 | Pending |
+| AGENT-04 | Phase 5 | Pending |
+| AGENT-05 | Phase 5 | Pending |
+| AGENT-06 | Phase 5 | Pending |
+| AGENT-07 | Phase 6 | Pending |
+| AGENT-08 | Phase 6 | Pending |
+| DASH-01 | Phase 7 | Pending |
+| DASH-02 | Phase 7 | Pending |
+| DASH-03 | Phase 7 | Pending |
+| DASH-04 | Phase 7 | Pending |
+| DASH-05 | Phase 7 | Pending |
+| DASH-06 | Phase 7 | Pending |
+| AUTO-01 | Phase 8 | Pending |
+| AUTO-02 | Phase 8 | Pending |
+| AUTO-03 | Phase 8 | Pending |
+| AUTO-04 | Phase 8 | Pending |
+| AUTO-05 | Phase 8 | Pending |
 
 **Coverage:**
 - v1 requirements: 37 total
-- Mapped to phases: 0
-- Unmapped: 37 ⚠️
+- Mapped to phases: 37
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-25*
-*Last updated: 2026-03-25 after initial definition*
+*Last updated: 2026-03-25 after roadmap creation*
