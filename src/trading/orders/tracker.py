@@ -111,7 +111,7 @@ class OrderTracker:
         if machine is None:
             raise KeyError(f"Order {order_id} is not tracked")
 
-        from_state = machine.current_state.value
+        from_state = machine.current_state_value
 
         try:
             machine.send(event)
@@ -120,7 +120,7 @@ class OrderTracker:
                 "transition_rejected",
                 order_id=order_id,
                 current_state=from_state,
-                event=event,
+                trigger=event,
             )
             raise
 
@@ -135,13 +135,13 @@ class OrderTracker:
                 details=details,
             )
 
-        new_state = machine.current_state.value
+        new_state = machine.current_state_value
         self._logger.info(
             "transition_complete",
             order_id=order_id,
             from_state=from_state,
             to_state=new_state,
-            event=event,
+            trigger=event,
         )
         return new_state
 
@@ -180,8 +180,8 @@ class OrderTracker:
             "ib_status_received",
             order_id=order_id,
             ib_status=ib_status,
-            mapped_event=event,
-            current_state=machine.current_state.value,
+            mapped_trigger=event,
+            current_state=machine.current_state_value,
         )
 
         try:
@@ -191,11 +191,11 @@ class OrderTracker:
                 "ib_status_transition_rejected",
                 order_id=order_id,
                 ib_status=ib_status,
-                mapped_event=event,
-                current_state=machine.current_state.value,
+                mapped_trigger=event,
+                current_state=machine.current_state_value,
             )
             # Return current state -- the IB status couldn't be applied
-            return machine.current_state.value
+            return machine.current_state_value
 
     async def persist_transition(
         self,
