@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 1 of 8 (IB Connectivity & Infrastructure)
-Plan: 4 of 6 in current phase
+Plan: 5 of 6 in current phase
 Status: In progress
-Last activity: 2026-03-25 -- Completed 01-04-PLAN.md (contract resolution & caching)
+Last activity: 2026-03-25 -- Completed 01-05-PLAN.md (order state machine & tracker)
 
-Progress: [██████░░░░] ~67% (4/6 plans in Phase 1)
+Progress: [████████░░] ~83% (5/6 plans in Phase 1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
+- Total plans completed: 5
 - Average duration: 4min
-- Total execution time: 0.25 hours
+- Total execution time: 0.32 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-ib-connectivity | 4/6 | 15min | 4min |
+| 01-ib-connectivity | 5/6 | 19min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (6min), 01-03 (2min), 01-02 (4min), 01-04 (3min)
+- Last 5 plans: 01-01 (6min), 01-03 (2min), 01-02 (4min), 01-04 (3min), 01-05 (4min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -59,6 +59,9 @@ Recent decisions affecting current work:
 - [01-04]: Cache errors are non-fatal -- log warning, continue without cache
 - [01-04]: OptionChain fields handled as lists with list() for ib_async version compatibility
 - [01-04]: Empty qualify_options input returns immediately without IB API call
+- [01-05]: Used current_state_value (not deprecated current_state.value) for python-statemachine v3
+- [01-05]: Structlog 'trigger' keyword replaces 'event' to avoid reserved name conflict
+- [01-05]: handle_ib_status catches TransitionNotAllowed and returns current state (idempotent)
 
 ### Pending Todos
 
@@ -74,6 +77,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-25T22:10:55Z
-Stopped at: Completed 01-04-PLAN.md (contract resolution & caching)
+Last session: 2026-03-25T22:12:00Z
+Stopped at: Completed 01-05-PLAN.md (order state machine & tracker)
 Resume file: None
