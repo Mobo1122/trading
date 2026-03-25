@@ -1,0 +1,8 @@
+# Local development overrides
+# This file is automatically loaded by Docker Compose alongside docker-compose.yml.
+# It exposes the VNC port for IB Gateway debugging in development only.
+
+services:
+  ib-gateway:
+    ports:
+      - "127.0.0.1:5900:5900"  # VNC for IB Gateway debugging

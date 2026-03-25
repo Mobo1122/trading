@@ -1,0 +1,23 @@
+trading:
+  mode: paper
+
+ib:
+  host: "127.0.0.1"
+  client_id: 1
+  timeout: 30.0
+  max_reconnect_attempts: 0
+  reconnect_delay: 5.0
+  reconnect_max_delay: 120.0
+
+database:
+  url: "postgresql+asyncpg://trading:trading@localhost:5432/trading"
+  pool_size: 10
+  pool_overflow: 5
+
+redis:
+  url: "redis://localhost:6379/0"
+  contract_cache_ttl: 3600
+
+logging:
+  level: "INFO"
+  format: "console"

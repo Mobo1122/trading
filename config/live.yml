@@ -1,0 +1,11 @@
+# Live trading mode overrides
+# Inherits from default.yml, only specifies differences.
+
+trading:
+  mode: live
+
+ib:
+  client_id: 2
+
+logging:
+  level: "WARNING"

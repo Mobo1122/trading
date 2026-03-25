@@ -1,0 +1,11 @@
+# Paper trading mode overrides
+# Inherits from default.yml, only specifies differences.
+
+trading:
+  mode: paper
+
+ib:
+  client_id: 1
+
+logging:
+  level: "DEBUG"
