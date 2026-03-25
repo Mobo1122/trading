@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 1 of 8 (IB Connectivity & Infrastructure)
-Plan: 1 of 6 in current phase
+Plan: 3 of 6 in current phase
 Status: In progress
-Last activity: 2026-03-25 -- Completed 01-01-PLAN.md (project foundation)
+Last activity: 2026-03-25 -- Completed 01-03-PLAN.md (IB connection manager)
 
-Progress: [█░░░░░░░░░] ~17% (1/6 plans in Phase 1)
+Progress: [███░░░░░░░] ~33% (2/6 plans in Phase 1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 6min
-- Total execution time: 0.1 hours
+- Total plans completed: 2
+- Average duration: 4min
+- Total execution time: 0.13 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-ib-connectivity | 1/6 | 6min | 6min |
+| 01-ib-connectivity | 2/6 | 8min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (6min)
-- Trend: baseline established
+- Last 5 plans: 01-01 (6min), 01-03 (2min)
+- Trend: accelerating
 
 *Updated after each plan completion*
 
@@ -49,6 +49,9 @@ Recent decisions affecting current work:
 - [01-01]: Invalid TRADING_MODE values silently fall back to paper (safety over error)
 - [01-01]: Startup banner at warning level to ensure always visible
 - [01-01]: Used hatchling build backend for src/ layout
+- [01-03]: Used asyncio.create_task (not ensure_future) for reconnection scheduling
+- [01-03]: Random jitter 0-1s added to backoff to prevent thundering herd
+- [01-03]: MockEvent test helper for ib_async event handler verification
 
 ### Pending Todos
 
@@ -64,6 +67,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-25T21:56:27Z
-Stopped at: Completed 01-01-PLAN.md (project foundation)
+Last session: 2026-03-25T22:02:51Z
+Stopped at: Completed 01-03-PLAN.md (IB connection manager)
 Resume file: None
