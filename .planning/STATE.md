@@ -5,32 +5,32 @@
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** The agents find and execute profitable options trades autonomously while never violating the user's risk constraints
-**Current focus:** Phase 1 - IB Connectivity & Infrastructure
+**Current focus:** Phase 1 complete -- ready for Phase 2 (Market Data)
 
 ## Current Position
 
 Phase: 1 of 8 (IB Connectivity & Infrastructure)
-Plan: 5 of 6 in current phase
-Status: In progress
-Last activity: 2026-03-25 -- Completed 01-05-PLAN.md (order state machine & tracker)
+Plan: 6 of 6 in current phase
+Status: Phase complete
+Last activity: 2026-03-25 -- Completed 01-06-PLAN.md (kill switch, health monitor, app wiring)
 
-Progress: [████████░░] ~83% (5/6 plans in Phase 1)
+Progress: [██████████] 100% (6/6 plans in Phase 1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
+- Total plans completed: 6
 - Average duration: 4min
-- Total execution time: 0.32 hours
+- Total execution time: 0.37 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-ib-connectivity | 5/6 | 19min | 4min |
+| 01-ib-connectivity | 6/6 | 22min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (6min), 01-03 (2min), 01-02 (4min), 01-04 (3min), 01-05 (4min)
+- Last 5 plans: 01-03 (2min), 01-02 (4min), 01-04 (3min), 01-05 (4min), 01-06 (3min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -62,6 +62,10 @@ Recent decisions affecting current work:
 - [01-05]: Used current_state_value (not deprecated current_state.value) for python-statemachine v3
 - [01-05]: Structlog 'trigger' keyword replaces 'event' to avoid reserved name conflict
 - [01-05]: handle_ib_status catches TransitionNotAllowed and returns current state (idempotent)
+- [01-06]: connect_ib() separated from startup() so tests run without IB Gateway
+- [01-06]: Health levels: HEALTHY (all up), DEGRADED (IB down), UNHEALTHY (DB or Redis down)
+- [01-06]: KillSwitch cancels all orders before closing positions (safety sequence)
+- [01-06]: Shutdown error isolation: each cleanup step try/excepted independently
 
 ### Pending Todos
 
@@ -77,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-25T22:12:00Z
-Stopped at: Completed 01-05-PLAN.md (order state machine & tracker)
+Last session: 2026-03-25T22:18:11Z
+Stopped at: Completed 01-06-PLAN.md (kill switch, health monitor, app wiring) -- Phase 1 complete
 Resume file: None
