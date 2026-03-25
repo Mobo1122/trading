@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 1 of 8 (IB Connectivity & Infrastructure)
-Plan: 3 of 6 in current phase
+Plan: 4 of 6 in current phase
 Status: In progress
-Last activity: 2026-03-25 -- Completed 01-02-PLAN.md (database & cache layer)
+Last activity: 2026-03-25 -- Completed 01-04-PLAN.md (contract resolution & caching)
 
-Progress: [█████░░░░░] ~50% (3/6 plans in Phase 1)
+Progress: [██████░░░░] ~67% (4/6 plans in Phase 1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 4min
-- Total execution time: 0.2 hours
+- Total execution time: 0.25 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-ib-connectivity | 3/6 | 12min | 4min |
+| 01-ib-connectivity | 4/6 | 15min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (6min), 01-03 (2min), 01-02 (4min)
+- Last 5 plans: 01-01 (6min), 01-03 (2min), 01-02 (4min), 01-04 (3min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -56,6 +56,9 @@ Recent decisions affecting current work:
 - [01-02]: OrderStateTransition uses autoincrement id alongside timestamp for hypertable compatibility
 - [01-02]: Redis client with decode_responses=True for string returns
 - [01-02]: Session factory uses expire_on_commit=False for post-commit attribute access
+- [01-04]: Cache errors are non-fatal -- log warning, continue without cache
+- [01-04]: OptionChain fields handled as lists with list() for ib_async version compatibility
+- [01-04]: Empty qualify_options input returns immediately without IB API call
 
 ### Pending Todos
 
@@ -71,6 +74,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-25T22:04:00Z
-Stopped at: Completed 01-02-PLAN.md (database & cache layer)
+Last session: 2026-03-25T22:10:55Z
+Stopped at: Completed 01-04-PLAN.md (contract resolution & caching)
 Resume file: None
