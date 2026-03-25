@@ -12,26 +12,26 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 Phase: 1 of 8 (IB Connectivity & Infrastructure)
 Plan: 3 of 6 in current phase
 Status: In progress
-Last activity: 2026-03-25 -- Completed 01-03-PLAN.md (IB connection manager)
+Last activity: 2026-03-25 -- Completed 01-02-PLAN.md (database & cache layer)
 
-Progress: [███░░░░░░░] ~33% (2/6 plans in Phase 1)
+Progress: [█████░░░░░] ~50% (3/6 plans in Phase 1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
+- Total plans completed: 3
 - Average duration: 4min
-- Total execution time: 0.13 hours
+- Total execution time: 0.2 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-ib-connectivity | 2/6 | 8min | 4min |
+| 01-ib-connectivity | 3/6 | 12min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (6min), 01-03 (2min)
-- Trend: accelerating
+- Last 5 plans: 01-01 (6min), 01-03 (2min), 01-02 (4min)
+- Trend: consistent
 
 *Updated after each plan completion*
 
@@ -52,6 +52,10 @@ Recent decisions affecting current work:
 - [01-03]: Used asyncio.create_task (not ensure_future) for reconnection scheduling
 - [01-03]: Random jitter 0-1s added to backoff to prevent thundering herd
 - [01-03]: MockEvent test helper for ib_async event handler verification
+- [01-02]: TimescaleDB hypertable via raw SQL in migration, not sqlalchemy-timescaledb dialect
+- [01-02]: OrderStateTransition uses autoincrement id alongside timestamp for hypertable compatibility
+- [01-02]: Redis client with decode_responses=True for string returns
+- [01-02]: Session factory uses expire_on_commit=False for post-commit attribute access
 
 ### Pending Todos
 
@@ -67,6 +71,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-25T22:02:51Z
-Stopped at: Completed 01-03-PLAN.md (IB connection manager)
+Last session: 2026-03-25T22:04:00Z
+Stopped at: Completed 01-02-PLAN.md (database & cache layer)
 Resume file: None
