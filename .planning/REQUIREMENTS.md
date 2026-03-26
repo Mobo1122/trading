@@ -9,12 +9,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Brokerage Connectivity
 
-- [ ] **CONN-01**: System connects to IB Gateway with auto-reconnect and daily restart handling
+- [x] **CONN-01**: System connects to IB Gateway with auto-reconnect and daily restart handling
 - [ ] **CONN-02**: System places market, limit, and stop orders via IB API
 - [ ] **CONN-03**: System places multi-leg combo/spread orders (up to 6 legs)
-- [ ] **CONN-04**: System tracks order state via local state machine (pending -> submitted -> filled/cancelled/error)
-- [ ] **CONN-05**: System toggles between paper and live trading via configuration
-- [ ] **CONN-06**: System retrieves option chains (strikes, expirations, contract specs) for equities, ETFs, and futures
+- [x] **CONN-04**: System tracks order state via local state machine (pending -> submitted -> filled/cancelled/error)
+- [x] **CONN-05**: System toggles between paper and live trading via configuration
+- [x] **CONN-06**: System retrieves option chains (strikes, expirations, contract specs) for equities, ETFs, and futures
 
 ### Risk Management
 
@@ -98,12 +98,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CONN-01 | Phase 1 | Pending |
+| CONN-01 | Phase 1 | Complete |
 | CONN-02 | Phase 4 | Pending |
 | CONN-03 | Phase 4 | Pending |
-| CONN-04 | Phase 1 | Pending |
-| CONN-05 | Phase 1 | Pending |
-| CONN-06 | Phase 1 | Pending |
+| CONN-04 | Phase 1 | Complete |
+| CONN-05 | Phase 1 | Complete |
+| CONN-06 | Phase 1 | Complete |
 | RISK-01 | Phase 3 | Pending |
 | RISK-02 | Phase 3 | Pending |
 | RISK-03 | Phase 3 | Pending |
@@ -143,4 +143,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-03-25*
-*Last updated: 2026-03-25 after roadmap creation*
+*Last updated: 2026-03-26 after Phase 1 completion*

@@ -12,7 +12,7 @@ This roadmap delivers an autonomous options trading system in 8 phases, ordered 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: IB Connectivity & Infrastructure** - Establish reliable IB Gateway connection, project scaffolding, database, and paper/live toggle
+- [x] **Phase 1: IB Connectivity & Infrastructure** - Establish reliable IB Gateway connection, project scaffolding, database, and paper/live toggle
 - [ ] **Phase 2: Market Data & Analytics** - Stream real-time quotes, Greeks, and IV with analytical overlays for trade decision support
 - [ ] **Phase 3: Risk Engine** - Enforce all risk constraints deterministically before any trade can execute
 - [ ] **Phase 4: Order Execution** - Place and track single-leg and multi-leg orders through the risk gate to IB
@@ -36,12 +36,12 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 6 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Project scaffolding, dependencies, config system, Docker Compose, paper/live toggle
-- [ ] 01-02-PLAN.md — PostgreSQL + TimescaleDB schema, Alembic migrations, Redis client
-- [ ] 01-03-PLAN.md — IB Gateway connection manager with auto-reconnect and exponential backoff
-- [ ] 01-04-PLAN.md — Option chain retrieval via reqSecDefOptParams with Redis caching
-- [ ] 01-05-PLAN.md — Order state machine (python-statemachine) with DB persistence and IB status mapping
-- [ ] 01-06-PLAN.md — Kill switch, health monitoring, and application lifecycle wiring
+- [x] 01-01-PLAN.md — Project scaffolding, dependencies, config system, Docker Compose, paper/live toggle
+- [x] 01-02-PLAN.md — PostgreSQL + TimescaleDB schema, Alembic migrations, Redis client
+- [x] 01-03-PLAN.md — IB Gateway connection manager with auto-reconnect and exponential backoff
+- [x] 01-04-PLAN.md — Option chain retrieval via reqSecDefOptParams with Redis caching
+- [x] 01-05-PLAN.md — Order state machine (python-statemachine) with DB persistence and IB status mapping
+- [x] 01-06-PLAN.md — Kill switch, health monitoring, and application lifecycle wiring
 
 ### Phase 2: Market Data & Analytics
 **Goal**: Real-time market data streams from IB into the system, providing quotes, Greeks, IV, and analytical metrics that downstream agents and the risk engine depend on
@@ -182,7 +182,7 @@ Note: Phases 6 and 7 can execute in parallel after Phase 5 completes.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. IB Connectivity & Infrastructure | 0/6 | Planning complete | - |
+| 1. IB Connectivity & Infrastructure | 6/6 | Complete | 2026-03-26 |
 | 2. Market Data & Analytics | 0/5 | Not started | - |
 | 3. Risk Engine | 0/6 | Not started | - |
 | 4. Order Execution | 0/4 | Not started | - |
