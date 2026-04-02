@@ -10,27 +10,28 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 2 of 8 (Market Data & Analytics)
-Plan: 0 of 5 in current phase
-Status: Ready to plan
-Last activity: 2026-03-26 -- Phase 1 complete (6/6 plans, verified, approved)
+Plan: 1 of 5 in current phase
+Status: In progress
+Last activity: 2026-04-02 -- Completed 02-01-PLAN.md (Data Models & Schema)
 
-Progress: [█░░░░░░░░░] 12.5% (1/8 phases complete)
+Progress: [██░░░░░░░░] 15.9% (7/44 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 4min
-- Total execution time: 0.37 hours
+- Total plans completed: 7
+- Average duration: 3min
+- Total execution time: 0.40 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-ib-connectivity | 6/6 | 22min | 4min |
+| 02-market-data-analytics | 1/5 | 3min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 01-03 (2min), 01-02 (4min), 01-04 (3min), 01-05 (4min), 01-06 (3min)
+- Last 5 plans: 01-02 (4min), 01-04 (3min), 01-05 (4min), 01-06 (3min), 02-01 (3min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -66,6 +67,10 @@ Recent decisions affecting current work:
 - [01-06]: Health levels: HEALTHY (all up), DEGRADED (IB down), UNHEALTHY (DB or Redis down)
 - [01-06]: KillSwitch cancels all orders before closing positions (safety sequence)
 - [01-06]: Shutdown error isolation: each cleanup step try/excepted independently
+- [02-01]: EarningsEvent is regular table (not hypertable) -- not high-frequency time-series data
+- [02-01]: MarketQuote stores aggregate fields; per-leg option data in OptionGreeks
+- [02-01]: Followed Phase 1 autoincrement-id pattern for hypertable compatibility
+- [02-01]: Finnhub API key via pyaml-env !ENV syntax with empty default (non-fatal if unset)
 
 ### Pending Todos
 
@@ -81,6 +86,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26
-Stopped at: Phase 1 complete — verified and approved. Ready for Phase 2.
+Last session: 2026-04-02
+Stopped at: Completed 02-01-PLAN.md (Data Models & Schema). Ready for 02-02.
 Resume file: None
