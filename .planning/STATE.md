@@ -14,24 +14,24 @@ Plan: 3 of 5 in current phase
 Status: In progress
 Last activity: 2026-04-02 -- Completed 02-03-PLAN.md (IV Analytics Engine)
 
-Progress: [██░░░░░░░░] 18.2% (8/44 plans complete)
+Progress: [██░░░░░░░░] 20.5% (9/44 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
+- Total plans completed: 9
 - Average duration: 3min
-- Total execution time: 0.45 hours
+- Total execution time: 0.50 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-ib-connectivity | 6/6 | 22min | 4min |
-| 02-market-data-analytics | 2/5 | 6min | 3min |
+| 02-market-data-analytics | 3/5 | 9min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 01-04 (3min), 01-05 (4min), 01-06 (3min), 02-01 (3min), 02-03 (3min)
+- Last 5 plans: 01-05 (4min), 01-06 (3min), 02-01 (3min), 02-02 (3min), 02-03 (3min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -71,6 +71,10 @@ Recent decisions affecting current work:
 - [02-01]: MarketQuote stores aggregate fields; per-leg option data in OptionGreeks
 - [02-01]: Followed Phase 1 autoincrement-id pattern for hypertable compatibility
 - [02-01]: Finnhub API key via pyaml-env !ENV syntax with empty default (non-fatal if unset)
+- [02-02]: LRU eviction removes oldest non-pinned subscription; HIGH priority pins never evicted
+- [02-02]: Redis dual-write: pub/sub for streaming + HSET for latest-value lookup
+- [02-02]: Atomic buffer swap in TimescaleDBWriter prevents data loss during flush
+- [02-02]: All timestamps use timezone-aware datetime.now(timezone.utc) instead of utcnow()
 - [02-03]: Conservative IB rate limits: 55/window (vs 60 max), 2.5s spacing (vs 2s min)
 - [02-03]: Minimum 20 data points for IV rank/percentile; returns None below threshold (cold start safety)
 - [02-03]: Sequential watchlist bootstrap to respect IB pacing; asyncio.gather only for DB reads
@@ -91,5 +95,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-02
-Stopped at: Completed 02-03-PLAN.md (IV Analytics Engine). 02-02 may be running in parallel.
+Stopped at: Completed 02-02-PLAN.md (Streaming Pipeline). 02-01, 02-02, 02-03 done. Ready for 02-04.
 Resume file: None
