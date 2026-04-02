@@ -7,12 +7,14 @@ by timestamp for efficient time-series queries.
 
 from __future__ import annotations
 
+import datetime as dt
 import enum
 from datetime import datetime
 from typing import Optional
 from uuid import uuid4
 
-from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, func
+import sqlalchemy as sa
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Index, Integer, String, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -131,4 +133,138 @@ class OrderStateTransition(Base):
         return (
             f"<OrderStateTransition(order_id={self.order_id!r}, "
             f"{self.from_state!r} -> {self.to_state!r}, event={self.event!r})>"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Market data ORM models (Phase 2)
+# ---------------------------------------------------------------------------
+
+
+class MarketQuote(Base):
+    """Persisted market quote snapshots.
+
+    Stored as a TimescaleDB hypertable partitioned by timestamp
+    for efficient time-range queries over quote history.
+    """
+
+    __tablename__ = "market_quotes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    symbol: Mapped[str] = mapped_column(String(20), nullable=False)
+    con_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    sec_type: Mapped[str] = mapped_column(String(10), nullable=False, default="STK")
+    bid: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    ask: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    last: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    volume: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    open_interest: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    implied_volatility: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
+    __table_args__ = (
+        Index("ix_market_quotes_symbol_ts", "symbol", "timestamp"),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<MarketQuote(symbol={self.symbol!r}, "
+            f"bid={self.bid}, ask={self.ask}, ts={self.timestamp})>"
+        )
+
+
+class OptionGreeks(Base):
+    """Persisted option Greeks snapshots.
+
+    Stored as a TimescaleDB hypertable partitioned by timestamp
+    for time-series analysis of Greeks evolution.
+    """
+
+    __tablename__ = "option_greeks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    symbol: Mapped[str] = mapped_column(String(20), nullable=False)
+    con_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    implied_vol: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    delta: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    gamma: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    theta: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    vega: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    und_price: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
+    __table_args__ = (
+        Index("ix_option_greeks_symbol_ts", "symbol", "timestamp"),
+        Index("ix_option_greeks_con_id_ts", "con_id", "timestamp"),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<OptionGreeks(symbol={self.symbol!r}, "
+            f"delta={self.delta}, iv={self.implied_vol}, ts={self.timestamp})>"
+        )
+
+
+class IVHistory(Base):
+    """Daily implied volatility history.
+
+    Stored as a TimescaleDB hypertable partitioned by timestamp
+    for efficient IV rank/percentile calculations over time.
+    """
+
+    __tablename__ = "iv_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    symbol: Mapped[str] = mapped_column(String(20), nullable=False)
+    iv_close: Mapped[float] = mapped_column(Float, nullable=False)
+    iv_high: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    iv_low: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    hv_close: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
+    __table_args__ = (
+        Index("ix_iv_history_symbol_ts", "symbol", "timestamp"),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<IVHistory(symbol={self.symbol!r}, "
+            f"iv_close={self.iv_close}, ts={self.timestamp})>"
+        )
+
+
+class EarningsEvent(Base):
+    """Upcoming and historical earnings events.
+
+    Regular table (not a hypertable) since earnings data is not
+    high-frequency time-series. Unique constraint prevents
+    duplicate entries per symbol/date.
+    """
+
+    __tablename__ = "earnings_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    symbol: Mapped[str] = mapped_column(String(20), nullable=False)
+    earnings_date: Mapped[dt.date] = mapped_column(Date, nullable=False)
+    hour: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    eps_estimate: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    revenue_estimate: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        sa.UniqueConstraint("symbol", "earnings_date", name="uq_earnings_symbol_date"),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<EarningsEvent(symbol={self.symbol!r}, "
+            f"date={self.earnings_date}, hour={self.hour!r})>"
         )

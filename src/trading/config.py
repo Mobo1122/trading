@@ -107,6 +107,24 @@ class LoggingConfig(BaseModel):
     format: Literal["json", "console"] = "console"
 
 
+class MarketDataConfig(BaseModel):
+    """Market data streaming configuration.
+
+    Controls watchlist symbols, subscription limits, staleness detection,
+    batch persistence, and external API keys for the market data system.
+    """
+
+    watchlist: list[str] = ["SPY", "QQQ", "IWM", "AAPL", "MSFT"]
+    max_subscription_lines: int = 100
+    reserved_lines: int = 20
+    staleness_threshold_seconds: int = 30
+    batch_flush_interval_seconds: float = 5.0
+    batch_size: int = 500
+    iv_refresh_interval_minutes: int = 15
+    earnings_lookout_days: int = 7
+    finnhub_api_key: str = ""
+
+
 def _load_yaml_config(trading_mode: str) -> dict[str, Any]:
     """Load and merge YAML configuration files.
 
@@ -173,6 +191,7 @@ class Settings(BaseSettings):
     database: DatabaseConfig = DatabaseConfig()
     redis: RedisConfig = RedisConfig()
     logging: LoggingConfig = LoggingConfig()
+    market_data: MarketDataConfig = MarketDataConfig()
 
     model_config = {
         "env_prefix": "TRADING__",

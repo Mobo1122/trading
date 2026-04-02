@@ -21,3 +21,19 @@ redis:
 logging:
   level: "INFO"
   format: "console"
+
+market_data:
+  watchlist:
+    - SPY
+    - QQQ
+    - IWM
+    - AAPL
+    - MSFT
+  max_subscription_lines: 100
+  reserved_lines: 20
+  staleness_threshold_seconds: 30
+  batch_flush_interval_seconds: 5.0
+  batch_size: 500
+  iv_refresh_interval_minutes: 15
+  earnings_lookout_days: 7
+  finnhub_api_key: !ENV ${FINNHUB_API_KEY:}
