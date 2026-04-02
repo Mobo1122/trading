@@ -28,11 +28,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Market Data & Analytics
 
-- [ ] **DATA-01**: System streams real-time quotes (bid/ask, last, volume) from IB
-- [ ] **DATA-02**: System streams real-time per-contract Greeks (delta, gamma, theta, vega) and IV
-- [ ] **DATA-03**: System provides options open interest and volume for liquidity assessment
-- [ ] **DATA-04**: System calculates IV rank and IV percentile vs 52-week history per underlying
-- [ ] **DATA-05**: System integrates earnings calendar and adjusts strategy for IV expansion/crush events
+- [x] **DATA-01**: System streams real-time quotes (bid/ask, last, volume) from IB
+- [x] **DATA-02**: System streams real-time per-contract Greeks (delta, gamma, theta, vega) and IV
+- [x] **DATA-03**: System provides options open interest and volume for liquidity assessment
+- [x] **DATA-04**: System calculates IV rank and IV percentile vs 52-week history per underlying
+- [x] **DATA-05**: System integrates earnings calendar and adjusts strategy for IV expansion/crush events
 
 ### Agent Pipeline
 
@@ -111,11 +111,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RISK-05 | Phase 3 | Pending |
 | RISK-06 | Phase 3 | Pending |
 | RISK-07 | Phase 3 | Pending |
-| DATA-01 | Phase 2 | Pending |
-| DATA-02 | Phase 2 | Pending |
-| DATA-03 | Phase 2 | Pending |
-| DATA-04 | Phase 2 | Pending |
-| DATA-05 | Phase 2 | Pending |
+| DATA-01 | Phase 2 | Complete |
+| DATA-02 | Phase 2 | Complete |
+| DATA-03 | Phase 2 | Complete |
+| DATA-04 | Phase 2 | Complete |
+| DATA-05 | Phase 2 | Complete |
 | AGENT-01 | Phase 5 | Pending |
 | AGENT-02 | Phase 5 | Pending |
 | AGENT-03 | Phase 5 | Pending |

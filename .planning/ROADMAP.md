@@ -13,7 +13,7 @@ This roadmap delivers an autonomous options trading system in 8 phases, ordered 
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: IB Connectivity & Infrastructure** - Establish reliable IB Gateway connection, project scaffolding, database, and paper/live toggle
-- [ ] **Phase 2: Market Data & Analytics** - Stream real-time quotes, Greeks, and IV with analytical overlays for trade decision support
+- [x] **Phase 2: Market Data & Analytics** - Stream real-time quotes, Greeks, and IV with analytical overlays for trade decision support
 - [ ] **Phase 3: Risk Engine** - Enforce all risk constraints deterministically before any trade can execute
 - [ ] **Phase 4: Order Execution** - Place and track single-leg and multi-leg orders through the risk gate to IB
 - [ ] **Phase 5: Core Agent Pipeline** - Wire scanner, strategist, risk manager, and executor agents into a LangGraph-orchestrated pipeline
@@ -56,11 +56,11 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Pydantic data models, TimescaleDB schema (market_quotes, option_greeks, iv_history, earnings_events), and MarketDataConfig
-- [ ] 02-02-PLAN.md — Subscription manager (100-line limit, LRU eviction), Redis distributor (pub/sub + HSET), streaming engine, batch DB writer, staleness monitor
-- [ ] 02-03-PLAN.md — IV rank/percentile engine with IB historical data bootstrap, rate limiting, and cached computation
-- [ ] 02-04-PLAN.md — Finnhub earnings calendar integration with daily refresh and earnings flags
-- [ ] 02-05-PLAN.md — App lifecycle wiring for all Phase 2 components and comprehensive unit tests
+- [x] 02-01-PLAN.md — Pydantic data models, TimescaleDB schema (market_quotes, option_greeks, iv_history, earnings_events), and MarketDataConfig
+- [x] 02-02-PLAN.md — Subscription manager (100-line limit, LRU eviction), Redis distributor (pub/sub + HSET), streaming engine, batch DB writer, staleness monitor
+- [x] 02-03-PLAN.md — IV rank/percentile engine with IB historical data bootstrap, rate limiting, and cached computation
+- [x] 02-04-PLAN.md — Finnhub earnings calendar integration with daily refresh and earnings flags
+- [x] 02-05-PLAN.md — App lifecycle wiring for all Phase 2 components and comprehensive unit tests
 
 ### Phase 3: Risk Engine
 **Goal**: A deterministic risk management layer enforces all position, exposure, and loss constraints independently of any AI component, and blocks all trading when the risk gate is unreachable
@@ -183,7 +183,7 @@ Note: Phases 6 and 7 can execute in parallel after Phase 5 completes.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. IB Connectivity & Infrastructure | 6/6 | Complete | 2026-03-26 |
-| 2. Market Data & Analytics | 0/5 | Not started | - |
+| 2. Market Data & Analytics | 5/5 | Complete | 2026-04-02 |
 | 3. Risk Engine | 0/6 | Not started | - |
 | 4. Order Execution | 0/4 | Not started | - |
 | 5. Core Agent Pipeline | 0/7 | Not started | - |
