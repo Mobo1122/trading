@@ -17,6 +17,7 @@ from trading.market_data.models import (
     QuoteSnapshot,
     SubscriptionInfo,
     SubscriptionPriority,
+    _safe_float,
 )
 from trading.market_data.staleness import StalenessMonitor
 from trading.market_data.subscriber import SubscriptionManager
@@ -29,6 +30,7 @@ __all__ = [
     "EarningsFlag",
     "SubscriptionInfo",
     "SubscriptionPriority",
+    "_safe_float",
     "MarketDataManager",
     "SubscriptionManager",
     "RedisDistributor",

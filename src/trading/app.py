@@ -2,8 +2,9 @@
 
 Provides the TradingApp class and main() function for starting the system.
 Configures structured logging, displays a startup banner, and wires all
-Phase 1 components: IB connection, database, Redis, order tracking,
-health monitoring, and the emergency kill switch.
+Phase 1 and Phase 2 components: IB connection, database, Redis, order tracking,
+health monitoring, kill switch, market data streaming, IV analytics, and
+earnings calendar.
 """
 
 from __future__ import annotations
@@ -13,12 +14,20 @@ import re
 
 import structlog
 
+from trading.analytics.earnings import EarningsCalendar
+from trading.analytics.iv_engine import IVEngine
+from trading.analytics.iv_history import IVHistoryManager
 from trading.cache.redis import close_redis_client, create_redis_client
 from trading.config import Settings
 from trading.core.connection import IBConnectionManager
 from trading.core.health import HealthMonitor
 from trading.db.engine import create_db_engine, create_session_factory
 from trading.kill_switch import KillSwitch
+from trading.market_data.distributor import RedisDistributor
+from trading.market_data.manager import MarketDataManager
+from trading.market_data.staleness import StalenessMonitor
+from trading.market_data.subscriber import SubscriptionManager
+from trading.market_data.writer import TimescaleDBWriter
 from trading.orders.tracker import OrderTracker
 
 
@@ -72,13 +81,17 @@ def _mask_password(url: str) -> str:
 class TradingApp:
     """Main trading application lifecycle manager.
 
-    Wires all Phase 1 components together and manages their lifecycle:
+    Wires all Phase 1 and Phase 2 components together and manages their lifecycle:
       - IB connection manager (with auto-reconnect)
       - Database engine and session factory
       - Redis client
       - Order tracker
       - Kill switch (emergency shutdown)
       - Health monitor (IB + DB + Redis health checks)
+      - Market data manager (streaming pipeline)
+      - Staleness monitor (data quality)
+      - IV engine and history (implied volatility analytics)
+      - Earnings calendar (upcoming earnings events)
     """
 
     def __init__(self, settings: Settings) -> None:
@@ -91,6 +104,11 @@ class TradingApp:
         self.health_monitor: HealthMonitor | None = None
         self.kill_switch: KillSwitch | None = None
         self.order_tracker: OrderTracker | None = None
+        self.market_data_manager: MarketDataManager | None = None
+        self.staleness_monitor: StalenessMonitor | None = None
+        self.iv_engine: IVEngine | None = None
+        self.iv_history: IVHistoryManager | None = None
+        self.earnings_calendar: EarningsCalendar | None = None
 
     async def startup(self) -> None:
         """Start the trading application.
@@ -152,26 +170,107 @@ class TradingApp:
             settings=self.settings,
         )
 
+        # Phase 2: Market Data components (wired but not started until IB connects)
+        subscriber = SubscriptionManager(
+            ib=self.connection_manager.ib,
+            settings=self.settings,
+        )
+        distributor = RedisDistributor(redis_client=self.redis_client)
+        writer = TimescaleDBWriter(
+            session_factory=self.session_factory,
+            settings=self.settings,
+        )
+        self.market_data_manager = MarketDataManager(
+            ib=self.connection_manager.ib,
+            subscriber=subscriber,
+            distributor=distributor,
+            writer=writer,
+            settings=self.settings,
+        )
+        self.staleness_monitor = StalenessMonitor(
+            subscriber=subscriber,
+            distributor=distributor,
+            settings=self.settings,
+        )
+
+        # Phase 2: Analytics components
+        self.iv_history = IVHistoryManager(
+            ib=self.connection_manager.ib,
+            session_factory=self.session_factory,
+            settings=self.settings,
+        )
+        self.iv_engine = IVEngine(
+            iv_history=self.iv_history,
+            settings=self.settings,
+        )
+        self.earnings_calendar = EarningsCalendar(
+            session_factory=self.session_factory,
+            settings=self.settings,
+        )
+
         self.log.info("startup.complete")
 
     async def connect_ib(self) -> None:
-        """Connect to IB Gateway.
+        """Connect to IB Gateway and start Phase 2 streaming components.
 
         Separated from startup() to allow testing without IB Gateway.
-        Must call startup() first.
+        Must call startup() first. After IB connects, starts market data
+        streaming, bootstraps IV history, and refreshes earnings calendar.
         """
         if self.connection_manager is None:
             raise RuntimeError("Must call startup() before connect_ib()")
         await self.connection_manager.connect()
 
+        # Start market data streaming after IB connection
+        if self.market_data_manager is not None:
+            await self.market_data_manager.start()
+            self.log.info("market_data.streaming_started")
+
+        if self.staleness_monitor is not None:
+            await self.staleness_monitor.start()
+
+        # Bootstrap IV history for watchlist (rate-limited, non-critical)
+        if self.iv_history is not None:
+            try:
+                await self.iv_history.bootstrap_watchlist(
+                    self.settings.market_data.watchlist
+                )
+                self.log.info("iv_history.bootstrap_complete")
+            except Exception:
+                self.log.warning("iv_history.bootstrap_failed", exc_info=True)
+
+        # Refresh earnings calendar if stale (non-critical)
+        if self.earnings_calendar is not None and self.earnings_calendar.needs_refresh():
+            try:
+                await self.earnings_calendar.refresh_watchlist(
+                    self.settings.market_data.watchlist
+                )
+                self.log.info("earnings.refresh_complete")
+            except Exception:
+                self.log.warning("earnings.refresh_failed", exc_info=True)
+
     async def shutdown(self) -> None:
         """Shut down the trading application.
 
-        Disconnects IB, closes Redis, and disposes the database engine.
-        Each step is wrapped in try/except to ensure all cleanup runs
-        even if individual steps fail.
+        Stops Phase 2 market data components first (writer needs to flush
+        before IB disconnects), then disconnects IB, closes Redis, and
+        disposes the database engine. Each step is wrapped in try/except
+        to ensure all cleanup runs even if individual steps fail.
         """
         self.log.info("shutdown.starting")
+
+        # Phase 2: Stop market data BEFORE IB disconnects (writer needs to flush)
+        if self.staleness_monitor is not None:
+            try:
+                await self.staleness_monitor.stop()
+            except Exception:
+                self.log.warning("shutdown.staleness_monitor_failed", exc_info=True)
+
+        if self.market_data_manager is not None:
+            try:
+                await self.market_data_manager.stop()
+            except Exception:
+                self.log.warning("shutdown.market_data_failed", exc_info=True)
 
         if self.connection_manager is not None:
             try:
