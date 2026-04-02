@@ -53,14 +53,14 @@ Plans:
   3. Open interest and volume data is available per options contract for liquidity filtering
   4. IV rank and IV percentile vs 52-week history is calculated and available for any underlying
   5. Upcoming earnings dates are identified and the system flags underlyings approaching earnings events for IV expansion/crush awareness
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- [ ] 02-01: Real-time quote streaming via IB with Redis pub/sub distribution
-- [ ] 02-02: Greeks and IV streaming with subscription management
-- [ ] 02-03: Open interest, volume ingestion, and liquidity metrics
-- [ ] 02-04: IV rank/percentile calculation engine with historical data storage
-- [ ] 02-05: Earnings calendar integration and IV event flagging
+- [ ] 02-01-PLAN.md — Pydantic data models, TimescaleDB schema (market_quotes, option_greeks, iv_history, earnings_events), and MarketDataConfig
+- [ ] 02-02-PLAN.md — Subscription manager (100-line limit, LRU eviction), Redis distributor (pub/sub + HSET), streaming engine, batch DB writer, staleness monitor
+- [ ] 02-03-PLAN.md — IV rank/percentile engine with IB historical data bootstrap, rate limiting, and cached computation
+- [ ] 02-04-PLAN.md — Finnhub earnings calendar integration with daily refresh and earnings flags
+- [ ] 02-05-PLAN.md — App lifecycle wiring for all Phase 2 components and comprehensive unit tests
 
 ### Phase 3: Risk Engine
 **Goal**: A deterministic risk management layer enforces all position, exposure, and loss constraints independently of any AI component, and blocks all trading when the risk gate is unreachable
