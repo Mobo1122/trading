@@ -5,33 +5,33 @@
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** The agents find and execute profitable options trades autonomously while never violating the user's risk constraints
-**Current focus:** Phase 2 - Market Data & Analytics
+**Current focus:** Phase 2 complete. Ready for Phase 3 - Risk Management.
 
 ## Current Position
 
 Phase: 2 of 8 (Market Data & Analytics)
-Plan: 3 of 5 in current phase
-Status: In progress
-Last activity: 2026-04-02 -- Completed 02-03-PLAN.md (IV Analytics Engine)
+Plan: 5 of 5 in current phase
+Status: Phase complete
+Last activity: 2026-04-02 -- Completed 02-05-PLAN.md (Lifecycle Wiring & Tests)
 
-Progress: [██░░░░░░░░] 20.5% (9/44 plans complete)
+Progress: [███░░░░░░░] 25.0% (11/44 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
+- Total plans completed: 11
 - Average duration: 3min
-- Total execution time: 0.50 hours
+- Total execution time: 0.58 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-ib-connectivity | 6/6 | 22min | 4min |
-| 02-market-data-analytics | 3/5 | 9min | 3min |
+| 02-market-data-analytics | 5/5 | 19min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 01-05 (4min), 01-06 (3min), 02-01 (3min), 02-02 (3min), 02-03 (3min)
+- Last 5 plans: 02-01 (3min), 02-02 (3min), 02-03 (3min), 02-04 (3min), 02-05 (5min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -79,6 +79,12 @@ Recent decisions affecting current work:
 - [02-03]: Minimum 20 data points for IV rank/percentile; returns None below threshold (cold start safety)
 - [02-03]: Sequential watchlist bootstrap to respect IB pacing; asyncio.gather only for DB reads
 - [02-03]: Used timezone-aware datetime.now(tz=timezone.utc) instead of deprecated utcnow()
+- [02-04]: EarningsCalendar tries finnhub SDK first, falls back to httpx direct API
+- [02-04]: Earnings refresh is daily (24h staleness check); cache in-memory per symbol
+- [02-04]: Store earnings via upsert (ON CONFLICT DO UPDATE) for idempotent refresh
+- [02-05]: Phase 2 components wired but not started until connect_ib() (test-friendly)
+- [02-05]: IV bootstrap and earnings refresh are non-critical (try/except with warning)
+- [02-05]: Shutdown order: staleness -> market data -> IB disconnect (writer flush needs DB)
 
 ### Pending Todos
 
@@ -95,5 +101,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-02
-Stopped at: Completed 02-02-PLAN.md (Streaming Pipeline). 02-01, 02-02, 02-03 done. Ready for 02-04.
+Stopped at: Completed 02-05-PLAN.md (Lifecycle Wiring & Tests). Phase 2 complete (all 5 plans). Ready for Phase 3.
 Resume file: None
