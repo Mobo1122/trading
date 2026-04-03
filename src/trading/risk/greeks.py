@@ -59,3 +59,87 @@ def aggregate_portfolio_greeks(positions: list[dict]) -> PortfolioGreeks:
         theta=round(total_theta, 10),
         vega=round(total_vega, 10),
     )
+
+
+def evaluate_greeks_exposure(
+    proposal: TradeProposal,
+    limits: GreeksLimits,
+    current_portfolio_greeks: PortfolioGreeks | None = None,
+) -> RiskDecision | None:
+    """Check if a proposed trade would push portfolio Greeks beyond limits.
+
+    Pure function. Computes projected portfolio Greeks by adding the
+    proposal's estimated impact to the current portfolio Greeks, then
+    checks each Greek against its configured limit.
+
+    Returns None if all checks pass (trade is within limits).
+    Returns a RiskDecision with approved=False on the first violation.
+
+    Check order: delta, gamma, theta, vega (short-circuits on first failure).
+
+    Theta limit is negative -- more negative theta = worse. A projected
+    theta below (more negative than) the limit triggers a violation.
+    """
+    current = current_portfolio_greeks or PortfolioGreeks()
+    impact = proposal.estimated_greeks
+
+    projected_delta = current.delta + impact.delta
+    projected_gamma = current.gamma + impact.gamma
+    projected_theta = current.theta + impact.theta
+    projected_vega = current.vega + impact.vega
+
+    # Delta check: absolute value must stay within limit
+    if abs(projected_delta) > limits.max_delta:
+        return RiskDecision(
+            approved=False,
+            violated_rule=ViolatedRule.DELTA_EXPOSURE,
+            details=(
+                f"Portfolio delta would be {projected_delta:.1f} "
+                f"(current: {current.delta:.1f} + trade: {impact.delta:.1f}), "
+                f"exceeds limit {limits.max_delta:.1f}"
+            ),
+            proposal_id=proposal.proposal_id,
+        )
+
+    # Gamma check: absolute value must stay within limit
+    if abs(projected_gamma) > limits.max_gamma:
+        return RiskDecision(
+            approved=False,
+            violated_rule=ViolatedRule.GAMMA_EXPOSURE,
+            details=(
+                f"Portfolio gamma would be {projected_gamma:.1f} "
+                f"(current: {current.gamma:.1f} + trade: {impact.gamma:.1f}), "
+                f"exceeds limit {limits.max_gamma:.1f}"
+            ),
+            proposal_id=proposal.proposal_id,
+        )
+
+    # Theta check: projected theta must not be more negative than limit
+    # limit is negative (e.g. -500); theta of -600 is worse than -500
+    if projected_theta < limits.max_theta:
+        return RiskDecision(
+            approved=False,
+            violated_rule=ViolatedRule.THETA_EXPOSURE,
+            details=(
+                f"Portfolio theta would be {projected_theta:.1f} "
+                f"(current: {current.theta:.1f} + trade: {impact.theta:.1f}), "
+                f"exceeds limit {limits.max_theta:.1f}"
+            ),
+            proposal_id=proposal.proposal_id,
+        )
+
+    # Vega check: absolute value must stay within limit
+    if abs(projected_vega) > limits.max_vega:
+        return RiskDecision(
+            approved=False,
+            violated_rule=ViolatedRule.VEGA_EXPOSURE,
+            details=(
+                f"Portfolio vega would be {projected_vega:.1f} "
+                f"(current: {current.vega:.1f} + trade: {impact.vega:.1f}), "
+                f"exceeds limit {limits.max_vega:.1f}"
+            ),
+            proposal_id=proposal.proposal_id,
+        )
+
+    # All checks passed
+    return None
