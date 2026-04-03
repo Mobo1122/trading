@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: IB Connectivity & Infrastructure** - Establish reliable IB Gateway connection, project scaffolding, database, and paper/live toggle
 - [x] **Phase 2: Market Data & Analytics** - Stream real-time quotes, Greeks, and IV with analytical overlays for trade decision support
-- [ ] **Phase 3: Risk Engine** - Enforce all risk constraints deterministically before any trade can execute
+- [x] **Phase 3: Risk Engine** - Enforce all risk constraints deterministically before any trade can execute
 - [ ] **Phase 4: Order Execution** - Place and track single-leg and multi-leg orders through the risk gate to IB
 - [ ] **Phase 5: Core Agent Pipeline** - Wire scanner, strategist, risk manager, and executor agents into a LangGraph-orchestrated pipeline
 - [ ] **Phase 6: Advanced Agent Intelligence** - Add market regime awareness and automated position rolling to the agent pipeline
@@ -75,12 +75,12 @@ Plans:
 **Plans**: 6 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Risk domain models, config with paper/live limits, ORM schema, Alembic migration 003
-- [ ] 03-02-PLAN.md — Position sizing evaluator and strategy restriction/naked options evaluator
-- [ ] 03-03-PLAN.md — Portfolio Greeks aggregation and exposure limit evaluator
-- [ ] 03-04-PLAN.md — Circuit breaker with loss limits, Redis+Postgres dual storage, auto-reset
-- [ ] 03-05-PLAN.md — RiskManager orchestrator, whatIfOrder margin check, fail-safe wrapper
-- [ ] 03-06-PLAN.md — App lifecycle wiring and comprehensive unit tests for all risk rules
+- [x] 03-01-PLAN.md — Risk domain models, config with paper/live limits, ORM schema, Alembic migration 003
+- [x] 03-02-PLAN.md — Position sizing evaluator and strategy restriction/naked options evaluator
+- [x] 03-03-PLAN.md — Portfolio Greeks aggregation and exposure limit evaluator
+- [x] 03-04-PLAN.md — Circuit breaker with loss limits, Redis+Postgres dual storage, auto-reset
+- [x] 03-05-PLAN.md — RiskManager orchestrator, whatIfOrder margin check, fail-safe wrapper
+- [x] 03-06-PLAN.md — App lifecycle wiring and comprehensive unit tests for all risk rules
 
 ### Phase 4: Order Execution
 **Goal**: The system can place single-leg and multi-leg options orders through IB, with every order passing through the risk gate and every fill tracked end-to-end
@@ -184,7 +184,7 @@ Note: Phases 6 and 7 can execute in parallel after Phase 5 completes.
 |-------|----------------|--------|-----------|
 | 1. IB Connectivity & Infrastructure | 6/6 | Complete | 2026-03-26 |
 | 2. Market Data & Analytics | 5/5 | Complete | 2026-04-02 |
-| 3. Risk Engine | 0/6 | Not started | - |
+| 3. Risk Engine | 6/6 | Complete | 2026-04-03 |
 | 4. Order Execution | 0/4 | Not started | - |
 | 5. Core Agent Pipeline | 0/7 | Not started | - |
 | 6. Advanced Agent Intelligence | 0/3 | Not started | - |

@@ -18,13 +18,13 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Risk Management
 
-- [ ] **RISK-01**: System enforces configurable position sizing limits (max % portfolio, max contracts, max dollar amount per trade)
-- [ ] **RISK-02**: System enforces portfolio-level Greeks exposure limits (delta, gamma, theta, vega caps)
-- [ ] **RISK-03**: System enforces daily and weekly loss limits that halt all new trading when breached
-- [ ] **RISK-04**: System enforces strategy restrictions (e.g., no naked options) via configurable allowlist
-- [ ] **RISK-05**: System blocks all trades when risk manager is unreachable (fail-safe)
-- [ ] **RISK-06**: System performs pre-trade margin check before order submission
-- [ ] **RISK-07**: Loss limits and circuit breaker state persist across system restarts
+- [x] **RISK-01**: System enforces configurable position sizing limits (max % portfolio, max contracts, max dollar amount per trade)
+- [x] **RISK-02**: System enforces portfolio-level Greeks exposure limits (delta, gamma, theta, vega caps)
+- [x] **RISK-03**: System enforces daily and weekly loss limits that halt all new trading when breached
+- [x] **RISK-04**: System enforces strategy restrictions (e.g., no naked options) via configurable allowlist
+- [x] **RISK-05**: System blocks all trades when risk manager is unreachable (fail-safe)
+- [x] **RISK-06**: System performs pre-trade margin check before order submission
+- [x] **RISK-07**: Loss limits and circuit breaker state persist across system restarts
 
 ### Market Data & Analytics
 
