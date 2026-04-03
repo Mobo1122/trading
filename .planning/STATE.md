@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 3 of 8 (Risk Engine)
-Plan: 4 of 6 in current phase
+Plan: 5 of 6 in current phase
 Status: In progress
-Last activity: 2026-04-03 -- Completed 03-04-PLAN.md (Circuit Breaker & Risk Repository)
+Last activity: 2026-04-03 -- Completed 03-05-PLAN.md (RiskManager Orchestrator)
 
-Progress: [███░░░░░░░] 25.0% (2/8 phases complete, 4/6 plans in phase 3)
+Progress: [███░░░░░░░] 25.0% (2/8 phases complete, 5/6 plans in phase 3)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15
+- Total plans completed: 16
 - Average duration: 3min
-- Total execution time: 0.81 hours
+- Total execution time: 0.88 hours
 
 **By Phase:**
 
@@ -29,10 +29,10 @@ Progress: [███░░░░░░░] 25.0% (2/8 phases complete, 4/6 plans
 |-------|-------|-------|----------|
 | 01-ib-connectivity | 6/6 | 22min | 4min |
 | 02-market-data-analytics | 5/5 | 19min | 4min |
-| 03-risk-engine | 4/6 | 14min | 4min |
+| 03-risk-engine | 5/6 | 18min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 02-05 (5min), 03-01 (5min), 03-02 (3min), 03-03 (3min), 03-04 (3min)
+- Last 5 plans: 03-01 (5min), 03-02 (3min), 03-03 (3min), 03-04 (3min), 03-05 (4min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -95,6 +95,9 @@ Recent decisions affecting current work:
 - [03-04]: Upsert via select+update/insert instead of session.merge() for clearer control flow with autoincrement PKs
 - [03-04]: emergency_halt accepted as constructor param rather than re-reading config on each check()
 - [03-04]: Daily/weekly resets keyed by date string comparison in Redis for idempotent reset
+- [03-05]: Per-leg margin checks rather than combo orders (RESEARCH.md recommendation, conservative but safe)
+- [03-05]: Persistence errors non-fatal in RiskManager._persist (log warning, continue evaluation)
+- [03-05]: First leg with contract/order gets margin check (simple initial approach)
 
 ### Pending Todos
 
@@ -111,5 +114,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-03
-Stopped at: Completed 03-04-PLAN.md (Circuit Breaker & Risk Repository). Phase 3 in progress (4/6 plans).
+Stopped at: Completed 03-05-PLAN.md (RiskManager Orchestrator). Phase 3 in progress (5/6 plans).
 Resume file: None
