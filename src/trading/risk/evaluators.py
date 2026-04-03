@@ -80,3 +80,135 @@ def evaluate_position_size(
             )
 
     return None  # All checks passed
+
+
+# ---------------------------------------------------------------------------
+# Naked options detection
+# ---------------------------------------------------------------------------
+
+
+def is_naked_option(
+    proposal: TradeProposal,
+    existing_positions: list[TradeLeg] | None = None,
+) -> bool:
+    """Detect if a proposal contains naked (uncovered) short options.
+
+    A short call is covered if:
+    - The proposal contains a long call on the same underlying (spread), OR
+    - existing_positions holds >= quantity * 100 shares of the underlying.
+
+    A short put is covered if:
+    - The proposal contains a long put on the same underlying (spread), OR
+    - existing_positions holds a long put on the same underlying.
+
+    Args:
+        proposal: Trade request with legs to evaluate.
+        existing_positions: Current portfolio positions (as TradeLeg-like
+            objects). May be None or empty if no positions exist.
+
+    Returns:
+        True if any leg is a naked (uncovered) short option.
+    """
+    positions = existing_positions or []
+
+    short_options = [
+        leg for leg in proposal.legs
+        if leg.sec_type == "OPT" and leg.action == "SELL"
+    ]
+
+    if not short_options:
+        return False
+
+    for short_leg in short_options:
+        underlying = short_leg.symbol
+
+        # Check if there is a covering long option in the same proposal
+        has_covering_long = any(
+            leg.sec_type == "OPT"
+            and leg.action == "BUY"
+            and leg.symbol == underlying
+            for leg in proposal.legs
+        )
+        if has_covering_long:
+            continue
+
+        # For short calls: check if existing positions have enough stock
+        if short_leg.right == "C":
+            shares_held = sum(
+                pos.quantity
+                for pos in positions
+                if pos.symbol == underlying
+                and pos.sec_type == "STK"
+                and pos.quantity > 0
+            )
+            needed_shares = abs(short_leg.quantity) * 100
+            if shares_held >= needed_shares:
+                continue
+
+        # Check if existing positions have a covering long option
+        has_portfolio_cover = any(
+            pos.symbol == underlying
+            and pos.sec_type == "OPT"
+            and pos.quantity > 0  # Long position
+            for pos in positions
+        )
+        if has_portfolio_cover:
+            continue
+
+        # This short option is naked
+        return True
+
+    return False
+
+
+# ---------------------------------------------------------------------------
+# Strategy restrictions evaluator
+# ---------------------------------------------------------------------------
+
+
+def evaluate_strategy_restrictions(
+    proposal: TradeProposal,
+    restrictions: StrategyRestrictions,
+    existing_positions: list[TradeLeg] | None = None,
+) -> RiskDecision | None:
+    """Check strategy type allowlist and naked options restriction.
+
+    Evaluates in order: strategy allowlist, then naked options.
+    Returns None if all checks pass, or a RiskDecision with the first
+    violated rule.
+
+    Args:
+        proposal: Trade request with strategy_type and legs.
+        restrictions: Strategy restrictions configuration.
+        existing_positions: Current portfolio positions for naked option
+            detection. May be None.
+
+    Returns:
+        None if passed, RiskDecision with violation details if failed.
+    """
+    # 1. Strategy allowlist
+    if proposal.strategy_type not in restrictions.allowed_strategies:
+        return RiskDecision(
+            approved=False,
+            violated_rule=ViolatedRule.STRATEGY_RESTRICTED,
+            details=(
+                f"Strategy '{proposal.strategy_type}' is not allowed. "
+                f"Permitted: {', '.join(restrictions.allowed_strategies)}"
+            ),
+            proposal_id=proposal.proposal_id,
+        )
+
+    # 2. Naked options check
+    if not restrictions.allow_naked_options:
+        if is_naked_option(proposal, existing_positions):
+            return RiskDecision(
+                approved=False,
+                violated_rule=ViolatedRule.NAKED_OPTION,
+                details=(
+                    "Proposal contains naked (uncovered) short options "
+                    "and allow_naked_options is disabled"
+                ),
+                proposal_id=proposal.proposal_id,
+            )
+
+    return None  # All checks passed
