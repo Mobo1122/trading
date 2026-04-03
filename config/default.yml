@@ -37,3 +37,53 @@ market_data:
   iv_refresh_interval_minutes: 15
   earnings_lookout_days: 7
   finnhub_api_key: !ENV ${FINNHUB_API_KEY:}
+
+risk_limits:
+  paper:
+    position:
+      max_position_pct: 0.10
+      max_contracts: 20
+      max_dollars: 10000.0
+    greeks:
+      max_delta: 1000.0
+      max_gamma: 200.0
+      max_theta: -1000.0
+      max_vega: 2000.0
+    loss:
+      daily_max_loss: 2000.0
+      weekly_max_loss: 5000.0
+    strategy:
+      allowed_strategies:
+        - covered_call
+        - cash_secured_put
+        - vertical_spread
+        - iron_condor
+        - iron_butterfly
+        - calendar_spread
+      allow_naked_options: false
+    margin_check_timeout: 5.0
+    emergency_halt: false
+  live:
+    position:
+      max_position_pct: 0.05
+      max_contracts: 10
+      max_dollars: 5000.0
+    greeks:
+      max_delta: 500.0
+      max_gamma: 100.0
+      max_theta: -500.0
+      max_vega: 1000.0
+    loss:
+      daily_max_loss: 1000.0
+      weekly_max_loss: 3000.0
+    strategy:
+      allowed_strategies:
+        - covered_call
+        - cash_secured_put
+        - vertical_spread
+        - iron_condor
+        - iron_butterfly
+        - calendar_spread
+      allow_naked_options: false
+    margin_check_timeout: 5.0
+    emergency_halt: false

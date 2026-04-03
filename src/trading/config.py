@@ -28,6 +28,8 @@ from pydantic import BaseModel, field_validator
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource
 from pyaml_env import parse_config
 
+from trading.risk.config import RiskLimitsConfig
+
 logger = structlog.get_logger()
 
 # Project root is 2 levels up from this file (src/trading/config.py -> project root)
@@ -192,6 +194,7 @@ class Settings(BaseSettings):
     redis: RedisConfig = RedisConfig()
     logging: LoggingConfig = LoggingConfig()
     market_data: MarketDataConfig = MarketDataConfig()
+    risk_limits: RiskLimitsConfig = RiskLimitsConfig()
 
     model_config = {
         "env_prefix": "TRADING__",
