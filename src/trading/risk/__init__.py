@@ -7,8 +7,11 @@ Provides the shared vocabulary for trade risk evaluation:
 - RiskLimitsConfig: Paper/live risk limit profiles
 - RiskManager: Single entry point for all trade risk evaluation
 - evaluate_with_failsafe: Fail-safe wrapper guaranteeing explicit decisions
+- CircuitBreaker: Daily/weekly loss limit circuit breaker
+- RiskRepository: Persistence for risk decisions and circuit breaker state
 """
 
+from trading.risk.circuit_breaker import CircuitBreaker
 from trading.risk.config import RiskLimitsConfig, RiskLimitsProfile
 from trading.risk.manager import RiskManager, evaluate_with_failsafe
 from trading.risk.models import (
@@ -19,8 +22,10 @@ from trading.risk.models import (
     TradeProposal,
     ViolatedRule,
 )
+from trading.risk.repository import RiskRepository
 
 __all__ = [
+    "CircuitBreaker",
     "TradeProposal",
     "TradeLeg",
     "GreeksImpact",
@@ -30,5 +35,6 @@ __all__ = [
     "RiskLimitsConfig",
     "RiskLimitsProfile",
     "RiskManager",
+    "RiskRepository",
     "evaluate_with_failsafe",
 ]

@@ -2,9 +2,9 @@
 
 Provides the TradingApp class and main() function for starting the system.
 Configures structured logging, displays a startup banner, and wires all
-Phase 1 and Phase 2 components: IB connection, database, Redis, order tracking,
-health monitoring, kill switch, market data streaming, IV analytics, and
-earnings calendar.
+Phase 1, Phase 2, and Phase 3 components: IB connection, database, Redis,
+order tracking, health monitoring, kill switch, market data streaming,
+IV analytics, earnings calendar, and risk engine.
 """
 
 from __future__ import annotations
@@ -29,6 +29,9 @@ from trading.market_data.staleness import StalenessMonitor
 from trading.market_data.subscriber import SubscriptionManager
 from trading.market_data.writer import TimescaleDBWriter
 from trading.orders.tracker import OrderTracker
+from trading.risk.circuit_breaker import CircuitBreaker
+from trading.risk.manager import RiskManager
+from trading.risk.repository import RiskRepository
 
 
 def setup_logging(settings: Settings) -> None:
@@ -81,7 +84,8 @@ def _mask_password(url: str) -> str:
 class TradingApp:
     """Main trading application lifecycle manager.
 
-    Wires all Phase 1 and Phase 2 components together and manages their lifecycle:
+    Wires all Phase 1, Phase 2, and Phase 3 components together and manages
+    their lifecycle:
       - IB connection manager (with auto-reconnect)
       - Database engine and session factory
       - Redis client
@@ -92,6 +96,7 @@ class TradingApp:
       - Staleness monitor (data quality)
       - IV engine and history (implied volatility analytics)
       - Earnings calendar (upcoming earnings events)
+      - Risk repository, circuit breaker, and risk manager (risk engine)
     """
 
     def __init__(self, settings: Settings) -> None:
@@ -109,6 +114,9 @@ class TradingApp:
         self.iv_engine: IVEngine | None = None
         self.iv_history: IVHistoryManager | None = None
         self.earnings_calendar: EarningsCalendar | None = None
+        self.risk_repository: RiskRepository | None = None
+        self.circuit_breaker: CircuitBreaker | None = None
+        self.risk_manager: RiskManager | None = None
 
     async def startup(self) -> None:
         """Start the trading application.
@@ -208,6 +216,27 @@ class TradingApp:
             settings=self.settings,
         )
 
+        # Phase 3: Risk engine components
+        self.risk_repository = RiskRepository(session_factory=self.session_factory)
+        risk_profile = (
+            self.settings.risk_limits.paper
+            if self.settings.trading.mode == "paper"
+            else self.settings.risk_limits.live
+        )
+        self.circuit_breaker = CircuitBreaker(
+            redis=self.redis_client,
+            repository=self.risk_repository,
+            mode=self.settings.trading.mode,
+            limits=risk_profile.loss,
+        )
+        self.risk_manager = RiskManager(
+            limits=risk_profile,
+            circuit_breaker=self.circuit_breaker,
+            repository=self.risk_repository,
+            ib=None,
+            mode=self.settings.trading.mode,
+        )
+
         self.log.info("startup.complete")
 
     async def connect_ib(self) -> None:
@@ -248,6 +277,16 @@ class TradingApp:
                 self.log.info("earnings.refresh_complete")
             except Exception:
                 self.log.warning("earnings.refresh_failed", exc_info=True)
+
+        # Phase 3: Wire IB to risk manager and restore circuit breaker state
+        if self.risk_manager is not None:
+            self.risk_manager._ib = self.connection_manager.ib
+        if self.circuit_breaker is not None:
+            try:
+                await self.circuit_breaker.load_from_db()
+                self.log.info("circuit_breaker.state_restored")
+            except Exception:
+                self.log.warning("circuit_breaker.restore_failed", exc_info=True)
 
     async def shutdown(self) -> None:
         """Shut down the trading application.
