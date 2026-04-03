@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 3 of 8 (Risk Engine)
-Plan: 3 of 6 in current phase
+Plan: 4 of 6 in current phase
 Status: In progress
-Last activity: 2026-04-03 -- Completed 03-03-PLAN.md (Portfolio Greeks & Exposure Evaluator)
+Last activity: 2026-04-03 -- Completed 03-04-PLAN.md (Circuit Breaker & Risk Repository)
 
-Progress: [██░░░░░░░░] 25.0% (2/8 phases complete, 3/6 plans in phase 3)
+Progress: [███░░░░░░░] 25.0% (2/8 phases complete, 4/6 plans in phase 3)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
+- Total plans completed: 15
 - Average duration: 3min
-- Total execution time: 0.76 hours
+- Total execution time: 0.81 hours
 
 **By Phase:**
 
@@ -29,10 +29,10 @@ Progress: [██░░░░░░░░] 25.0% (2/8 phases complete, 3/6 plans
 |-------|-------|-------|----------|
 | 01-ib-connectivity | 6/6 | 22min | 4min |
 | 02-market-data-analytics | 5/5 | 19min | 4min |
-| 03-risk-engine | 3/6 | 11min | 4min |
+| 03-risk-engine | 4/6 | 14min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 02-04 (3min), 02-05 (5min), 03-01 (5min), 03-02 (3min), 03-03 (3min)
+- Last 5 plans: 02-05 (5min), 03-01 (5min), 03-02 (3min), 03-03 (3min), 03-04 (3min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -92,6 +92,9 @@ Recent decisions affecting current work:
 - [03-02]: existing_positions typed as list[TradeLeg] to reuse existing model instead of new Position type
 - [03-03]: Round aggregated Greeks to 10 decimal places to avoid IEEE 754 float noise in comparisons
 - [03-03]: evaluate_greeks_exposure returns None on pass, RiskDecision on failure (none-passthrough pattern)
+- [03-04]: Upsert via select+update/insert instead of session.merge() for clearer control flow with autoincrement PKs
+- [03-04]: emergency_halt accepted as constructor param rather than re-reading config on each check()
+- [03-04]: Daily/weekly resets keyed by date string comparison in Redis for idempotent reset
 
 ### Pending Todos
 
@@ -108,5 +111,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-03
-Stopped at: Completed 03-03-PLAN.md (Portfolio Greeks & Exposure Evaluator). Phase 3 in progress (3/6 plans).
+Stopped at: Completed 03-04-PLAN.md (Circuit Breaker & Risk Repository). Phase 3 in progress (4/6 plans).
 Resume file: None
