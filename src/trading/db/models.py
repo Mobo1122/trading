@@ -268,3 +268,114 @@ class EarningsEvent(Base):
             f"<EarningsEvent(symbol={self.symbol!r}, "
             f"date={self.earnings_date}, hour={self.hour!r})>"
         )
+
+
+# ---------------------------------------------------------------------------
+# Risk engine ORM models (Phase 3)
+# ---------------------------------------------------------------------------
+
+
+class RiskDecisionRecord(Base):
+    """Persistent log of every risk evaluation decision.
+
+    Records whether each trade proposal was approved or rejected,
+    the violated rule (if rejected), margin check results, and
+    whether the evaluation was in dry-run mode.
+    """
+
+    __tablename__ = "risk_decisions"
+
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    proposal_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    approved: Mapped[bool] = mapped_column(sa.Boolean, nullable=False)
+    violated_rule: Mapped[Optional[str]] = mapped_column(
+        String(50), nullable=True
+    )
+    details: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    strategy_type: Mapped[Optional[str]] = mapped_column(
+        String(50), nullable=True
+    )
+    max_loss: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    dry_run: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, default=False
+    )
+    mode: Mapped[str] = mapped_column(String(10), nullable=False)
+    margin_init_after: Mapped[Optional[float]] = mapped_column(
+        Float, nullable=True
+    )
+    margin_maint_after: Mapped[Optional[float]] = mapped_column(
+        Float, nullable=True
+    )
+    equity_with_loan_after: Mapped[Optional[float]] = mapped_column(
+        Float, nullable=True
+    )
+    estimated_commission: Mapped[Optional[float]] = mapped_column(
+        Float, nullable=True
+    )
+    margin_warning: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )
+    margin_check_timed_out: Mapped[bool] = mapped_column(
+        sa.Boolean, default=False
+    )
+
+    __table_args__ = (
+        Index("ix_risk_decisions_ts", "timestamp"),
+        Index("ix_risk_decisions_proposal", "proposal_id"),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<RiskDecisionRecord(proposal_id={self.proposal_id!r}, "
+            f"approved={self.approved}, rule={self.violated_rule!r})>"
+        )
+
+
+class CircuitBreakerState(Base):
+    """Tracks circuit breaker state per mode and halt type.
+
+    Each row represents one circuit breaker (e.g., paper/daily,
+    live/weekly). The unique constraint on (mode, halt_type) ensures
+    exactly one row per breaker. Loss accumulators reset on period
+    boundaries.
+    """
+
+    __tablename__ = "circuit_breaker_state"
+
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
+    mode: Mapped[str] = mapped_column(String(10), nullable=False)
+    halt_type: Mapped[str] = mapped_column(String(10), nullable=False)
+    halted: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, default=False
+    )
+    halted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    daily_realized_loss: Mapped[float] = mapped_column(
+        Float, default=0.0
+    )
+    weekly_realized_loss: Mapped[float] = mapped_column(
+        Float, default=0.0
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    __table_args__ = (
+        sa.UniqueConstraint("mode", "halt_type", name="uq_cb_mode_halt_type"),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<CircuitBreakerState(mode={self.mode!r}, "
+            f"halt_type={self.halt_type!r}, halted={self.halted})>"
+        )
