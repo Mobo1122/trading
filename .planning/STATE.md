@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 3 of 8 (Risk Engine)
-Plan: 2 of 6 in current phase
+Plan: 3 of 6 in current phase
 Status: In progress
-Last activity: 2026-04-03 -- Completed 03-02-PLAN.md (Position Sizing & Strategy Evaluators)
+Last activity: 2026-04-03 -- Completed 03-03-PLAN.md (Portfolio Greeks & Exposure Evaluator)
 
-Progress: [██░░░░░░░░] 25.0% (2/8 phases complete, 2/6 plans in phase 3)
+Progress: [██░░░░░░░░] 25.0% (2/8 phases complete, 3/6 plans in phase 3)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
+- Total plans completed: 14
 - Average duration: 3min
-- Total execution time: 0.71 hours
+- Total execution time: 0.76 hours
 
 **By Phase:**
 
@@ -29,10 +29,10 @@ Progress: [██░░░░░░░░] 25.0% (2/8 phases complete, 2/6 plans
 |-------|-------|-------|----------|
 | 01-ib-connectivity | 6/6 | 22min | 4min |
 | 02-market-data-analytics | 5/5 | 19min | 4min |
-| 03-risk-engine | 2/6 | 8min | 4min |
+| 03-risk-engine | 3/6 | 11min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 02-03 (3min), 02-04 (3min), 02-05 (5min), 03-01 (5min), 03-02 (3min)
+- Last 5 plans: 02-04 (3min), 02-05 (5min), 03-01 (5min), 03-02 (3min), 03-03 (3min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -90,6 +90,8 @@ Recent decisions affecting current work:
 - [03-01]: risk_decisions and circuit_breaker_state are regular tables (not hypertables) -- low-frequency events
 - [03-01]: Paper limits 2x live limits in YAML defaults -- relaxed for testing, strict for live
 - [03-02]: existing_positions typed as list[TradeLeg] to reuse existing model instead of new Position type
+- [03-03]: Round aggregated Greeks to 10 decimal places to avoid IEEE 754 float noise in comparisons
+- [03-03]: evaluate_greeks_exposure returns None on pass, RiskDecision on failure (none-passthrough pattern)
 
 ### Pending Todos
 
@@ -106,5 +108,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-03
-Stopped at: Completed 03-02-PLAN.md (Position Sizing & Strategy Evaluators). Phase 3 in progress (2/6 plans).
+Stopped at: Completed 03-03-PLAN.md (Portfolio Greeks & Exposure Evaluator). Phase 3 in progress (3/6 plans).
 Resume file: None
