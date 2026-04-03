@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 3 of 8 (Risk Engine)
-Plan: 0 of 6 in current phase
-Status: Ready to plan
-Last activity: 2026-04-02 -- Phase 2 complete (5/5 plans, verified, approved)
+Plan: 1 of 6 in current phase
+Status: In progress
+Last activity: 2026-04-03 -- Completed 03-01-PLAN.md (Risk Domain Models)
 
-Progress: [██░░░░░░░░] 25.0% (2/8 phases complete)
+Progress: [██░░░░░░░░] 25.0% (2/8 phases complete, 1/6 plans in phase 3)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
+- Total plans completed: 12
 - Average duration: 3min
-- Total execution time: 0.58 hours
+- Total execution time: 0.66 hours
 
 **By Phase:**
 
@@ -29,9 +29,10 @@ Progress: [██░░░░░░░░] 25.0% (2/8 phases complete)
 |-------|-------|-------|----------|
 | 01-ib-connectivity | 6/6 | 22min | 4min |
 | 02-market-data-analytics | 5/5 | 19min | 4min |
+| 03-risk-engine | 1/6 | 5min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (3min), 02-02 (3min), 02-03 (3min), 02-04 (3min), 02-05 (5min)
+- Last 5 plans: 02-02 (3min), 02-03 (3min), 02-04 (3min), 02-05 (5min), 03-01 (5min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -85,6 +86,9 @@ Recent decisions affecting current work:
 - [02-05]: Phase 2 components wired but not started until connect_ib() (test-friendly)
 - [02-05]: IV bootstrap and earnings refresh are non-critical (try/except with warning)
 - [02-05]: Shutdown order: staleness -> market data -> IB disconnect (writer flush needs DB)
+- [03-01]: timezone-aware datetime.now(timezone.utc) for RiskDecision.evaluated_at default factory
+- [03-01]: risk_decisions and circuit_breaker_state are regular tables (not hypertables) -- low-frequency events
+- [03-01]: Paper limits 2x live limits in YAML defaults -- relaxed for testing, strict for live
 
 ### Pending Todos
 
@@ -100,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-02
-Stopped at: Completed 02-05-PLAN.md (Lifecycle Wiring & Tests). Phase 2 complete (all 5 plans). Ready for Phase 3.
+Last session: 2026-04-03
+Stopped at: Completed 03-01-PLAN.md (Risk Domain Models). Phase 3 in progress (1/6 plans).
 Resume file: None
