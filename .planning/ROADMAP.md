@@ -72,15 +72,15 @@ Plans:
   3. System halts all new trading when daily or weekly realized loss limits are breached, and this halt persists across system restarts
   4. System rejects trades that violate strategy restrictions (e.g., naked options blocked when not on the allowlist)
   5. When the risk manager process is unreachable or unresponsive, zero trades execute (fail-safe default)
-**Plans**: TBD
+**Plans**: 6 plans
 
 Plans:
-- [ ] 03-01: Position sizing rules engine with configurable limits
-- [ ] 03-02: Portfolio Greeks aggregation and exposure limit enforcement
-- [ ] 03-03: Daily/weekly loss limits with circuit breakers and persistent state
-- [ ] 03-04: Strategy restriction allowlist and naked options detection
-- [ ] 03-05: Risk manager fail-safe (unreachable = block all trades)
-- [ ] 03-06: Pre-trade margin check via IB whatIfOrder API
+- [ ] 03-01-PLAN.md — Risk domain models, config with paper/live limits, ORM schema, Alembic migration 003
+- [ ] 03-02-PLAN.md — Position sizing evaluator and strategy restriction/naked options evaluator
+- [ ] 03-03-PLAN.md — Portfolio Greeks aggregation and exposure limit evaluator
+- [ ] 03-04-PLAN.md — Circuit breaker with loss limits, Redis+Postgres dual storage, auto-reset
+- [ ] 03-05-PLAN.md — RiskManager orchestrator, whatIfOrder margin check, fail-safe wrapper
+- [ ] 03-06-PLAN.md — App lifecycle wiring and comprehensive unit tests for all risk rules
 
 ### Phase 4: Order Execution
 **Goal**: The system can place single-leg and multi-leg options orders through IB, with every order passing through the risk gate and every fill tracked end-to-end
