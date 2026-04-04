@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 5 of 8 (Core Agent Pipeline)
-Plan: 5 of 7 in current phase
+Plan: 6 of 7 in current phase
 Status: In progress
-Last activity: 2026-04-04 -- Completed 05-05-PLAN.md (LangGraph pipeline orchestration)
+Last activity: 2026-04-04 -- Completed 05-06-PLAN.md (Agent decision logging)
 
-Progress: [######----] 62% (26/42 plans complete)
+Progress: [######----] 64% (27/42 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 25
+- Total plans completed: 27
 - Average duration: 3min
-- Total execution time: 1.46 hours
+- Total execution time: 1.53 hours
 
 **By Phase:**
 
@@ -31,10 +31,10 @@ Progress: [######----] 62% (26/42 plans complete)
 | 02-market-data-analytics | 5/5 | 19min | 4min |
 | 03-risk-engine | 6/6 | 24min | 4min |
 | 04-order-execution | 4/4 | 15min | 4min |
-| 05-core-agent-pipeline | 5/7 | 17min | 3min |
+| 05-core-agent-pipeline | 6/7 | 21min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 05-01 (5min), 05-02 (3min), 05-03 (2min), 05-04 (4min), 05-05 (3min)
+- Last 5 plans: 05-02 (3min), 05-03 (2min), 05-04 (4min), 05-05 (3min), 05-06 (4min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -122,6 +122,9 @@ Recent decisions affecting current work:
 - [05-05]: Node functions bind PipelineDeps via functools.partial (not lambda) for proper pickling/checkpointing
 - [05-05]: Pipeline short-circuits to END after scanner (no opportunities) and after risk (no approvals)
 - [05-05]: run_pipeline generates uuid4 thread_id for checkpoint isolation per run
+- [05-06]: Logging errors are non-fatal (try/except wrapper, matches 03-05/04-03 pattern)
+- [05-06]: model_name left as None since PydanticAI Usage object does not expose it
+- [05-06]: Input summaries are descriptive strings per node rather than raw serialized data
 
 ### Pending Todos
 
@@ -138,5 +141,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-04
-Stopped at: Completed 05-05-PLAN.md (LangGraph pipeline orchestration). Next: 05-06-PLAN.md.
+Stopped at: Completed 05-06-PLAN.md (Agent decision logging). Next: 05-07-PLAN.md.
 Resume file: None
