@@ -128,12 +128,12 @@ Plans:
   1. Scanner detects the current market regime (bull, bear, sideways, volatile) and the strategy mix adapts accordingly
   2. System identifies positions approaching expiration and automatically rolls them to new expirations when appropriate
   3. Regime changes and rolling decisions are logged with full reasoning, visible in the agent decision log
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 06-01: Market regime detection model and strategy mix adaptation
-- [ ] 06-02: Expiration monitoring and automated position rolling logic
-- [ ] 06-03: Integration testing of advanced intelligence with full pipeline
+- [ ] 06-01-PLAN.md — Deterministic regime detection module with MarketRegime enum, RegimeDetector, strategy weight mapping, and RegimeConfig
+- [ ] 06-02-PLAN.md — ExpirationMonitor with position scanning, rolling criteria evaluation, and RollingConfig
+- [ ] 06-03-PLAN.md — Pipeline integration (regime node, scanner prompt injection, rolling pre-check), app wiring, and comprehensive tests
 
 ### Phase 7: Dashboard & Monitoring
 **Goal**: A web dashboard provides full real-time visibility into every aspect of the trading system -- positions, P&L, Greeks, agent reasoning, system health, and scenario analysis
