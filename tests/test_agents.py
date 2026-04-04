@@ -1,4 +1,4 @@
-"""Comprehensive tests for Phase 5 agent pipeline components.
+"""Comprehensive tests for Phase 5-6 agent pipeline components.
 
 Covers:
 - Output contract serialization (Opportunity, ScannerOutput, StrategyProposal, etc.)
@@ -10,6 +10,10 @@ Covers:
 - Checkpoint factory validation (rejects asyncpg)
 - Pipeline deps and create_pipeline factory
 - App wiring (startup creates pipeline_deps)
+- Phase 6: Regime detection (enum, classification, strategy weights, detector)
+- Phase 6: Rolling logic (candidates, decisions, expiration monitor, DTE filter)
+- Phase 6: Pipeline integration (topology, state fields, prompt injection)
+- Phase 6: App wiring (regime detector, expiration monitor, run_agent_pipeline)
 
 All tests work WITHOUT an LLM API key.
 """
@@ -43,6 +47,7 @@ from trading.agents.pipeline import (
     route_after_scan,
     run_pipeline,
 )
+from trading.agents.regime import RegimeDetector
 from trading.agents.state import PipelineState
 
 
@@ -847,3 +852,544 @@ class TestAppWiring:
         app = TradingApp(test_settings)
         assert app.pipeline_deps is None
         assert app.agent_pipeline is None
+
+
+# ============================================================================
+# Phase 6: Regime Detection Tests
+# ============================================================================
+
+
+class TestRegimeDetection:
+    """Tests for market regime detection module (Plan 06-01)."""
+
+    def test_market_regime_enum(self):
+        """All 6 MarketRegime values exist and are string-serializable."""
+        from trading.agents.regime import MarketRegime
+
+        expected = {
+            "bull_quiet", "bull_volatile", "bear_quiet",
+            "bear_volatile", "sideways", "unknown",
+        }
+        actual = {r.value for r in MarketRegime}
+        assert actual == expected
+        # String serializable
+        for r in MarketRegime:
+            assert isinstance(str(r), str)
+            assert isinstance(r.value, str)
+
+    def test_regime_classification_serialization(self):
+        """RegimeClassification serializes via model_dump with all fields."""
+        from trading.agents.regime import MarketRegime, RegimeClassification
+
+        classification = RegimeClassification(
+            regime=MarketRegime.BULL_QUIET,
+            confidence=0.85,
+            trend_signal="bullish",
+            volatility_signal="low",
+            indicators={"iv_rank_avg": 25.0, "momentum_avg": 0.03},
+            reasoning="Test reasoning",
+            previous_regime=MarketRegime.UNKNOWN,
+        )
+        data = classification.model_dump()
+        assert data["regime"] == "bull_quiet"
+        assert data["confidence"] == 0.85
+        assert data["trend_signal"] == "bullish"
+        assert data["volatility_signal"] == "low"
+        assert "indicators" in data
+        assert "reasoning" in data
+        assert data["previous_regime"] == "unknown"
+
+    def test_regime_strategy_weights_complete(self):
+        """REGIME_STRATEGY_WEIGHTS has an entry for every MarketRegime."""
+        from trading.agents.regime import (
+            REGIME_STRATEGY_WEIGHTS,
+            MarketRegime,
+        )
+
+        for regime in MarketRegime:
+            assert regime in REGIME_STRATEGY_WEIGHTS, f"Missing weights for {regime}"
+            weights = REGIME_STRATEGY_WEIGHTS[regime]
+            assert isinstance(weights, dict)
+            for strategy, weight in weights.items():
+                assert isinstance(weight, (int, float))
+                assert weight >= 0, f"Negative weight for {regime}/{strategy}"
+
+    @pytest.mark.asyncio
+    async def test_regime_detector_unknown_on_empty_data(self):
+        """RegimeDetector returns UNKNOWN with low confidence on empty data."""
+        from trading.agents.config import RegimeConfig
+        from trading.agents.regime import MarketRegime, RegimeDetector
+
+        detector = RegimeDetector(RegimeConfig())
+        result = await detector.detect(iv_data={}, price_data={})
+        assert result.regime == MarketRegime.UNKNOWN
+        assert result.confidence <= 0.5
+
+    @pytest.mark.asyncio
+    async def test_regime_detector_bull_quiet(self):
+        """RegimeDetector detects bullish low-vol from IV rank + momentum."""
+        from trading.agents.config import RegimeConfig
+        from trading.agents.regime import RegimeDetector
+        from trading.market_data.models import IVData
+
+        config = RegimeConfig(hysteresis_count=1)
+        detector = RegimeDetector(config)
+
+        iv_data = {
+            "SPY": IVData(symbol="SPY", iv_rank=20.0, data_points=100),
+            "QQQ": IVData(symbol="QQQ", iv_rank=18.0, data_points=100),
+            "IWM": IVData(symbol="IWM", iv_rank=22.0, data_points=100),
+        }
+        price_data = {
+            "SPY": {"last": "460.0", "prev_close": "450.0"},
+            "QQQ": {"last": "390.0", "prev_close": "382.0"},
+            "IWM": {"last": "210.0", "prev_close": "205.0"},
+        }
+        result = await detector.detect(iv_data, price_data)
+        # Low IV rank + positive momentum = bullish + low vol
+        assert result.trend_signal == "bullish"
+        assert result.volatility_signal == "low"
+
+    @pytest.mark.asyncio
+    async def test_regime_detector_hysteresis(self):
+        """RegimeDetector requires multiple consecutive detections to switch."""
+        from trading.agents.config import RegimeConfig
+        from trading.agents.regime import MarketRegime, RegimeDetector
+        from trading.market_data.models import IVData
+
+        config = RegimeConfig(hysteresis_count=2)
+        detector = RegimeDetector(config)
+
+        bull_iv = {"SPY": IVData(symbol="SPY", iv_rank=20.0, data_points=100)}
+        bull_prices = {"SPY": {"last": "460.0", "prev_close": "440.0"}}
+
+        # First call: raw regime is bull_quiet but hysteresis not met
+        r1 = await detector.detect(bull_iv, bull_prices)
+        assert r1.regime == MarketRegime.UNKNOWN  # hysteresis not met yet
+
+        # Second call: same regime again, meets threshold
+        r2 = await detector.detect(bull_iv, bull_prices)
+        assert r2.regime != MarketRegime.UNKNOWN  # should switch now
+
+    def test_regime_config_defaults(self):
+        """RegimeConfig defaults match expected values."""
+        from trading.agents.config import RegimeConfig
+
+        config = RegimeConfig()
+        assert config.hysteresis_count == 3
+        assert config.iv_rank_high_threshold == 60.0
+        assert config.iv_rank_low_threshold == 30.0
+        assert config.momentum_bull_threshold == 0.02
+        assert config.momentum_bear_threshold == -0.02
+        assert config.vix_high_threshold == 25.0
+        assert config.vix_low_threshold == 15.0
+        assert config.enabled is True
+
+
+# ============================================================================
+# Phase 6: Rolling Logic Tests
+# ============================================================================
+
+
+class TestRollingLogic:
+    """Tests for expiration monitoring and rolling decisions (Plan 06-02)."""
+
+    def test_rolling_candidate_model(self):
+        """RollingCandidate serializes via model_dump with all fields."""
+        from trading.agents.rolling import RollingCandidate
+
+        candidate = RollingCandidate(
+            symbol="SPY",
+            con_id=12345,
+            current_expiry="20260410",
+            days_to_expiry=5,
+            position_size=-1.0,
+            avg_cost=100.0,
+            current_value=-150.0,
+            unrealized_pnl=-50.0,
+            right="P",
+            strike=440.0,
+            rolling_reason="approaching_expiry",
+        )
+        data = candidate.model_dump()
+        assert data["symbol"] == "SPY"
+        assert data["con_id"] == 12345
+        assert data["days_to_expiry"] == 5
+        assert data["right"] == "P"
+        assert data["strike"] == 440.0
+
+    def test_rolling_decision_model(self):
+        """RollingDecision with should_roll=True serializes correctly."""
+        from trading.agents.rolling import RollingCandidate, RollingDecision
+
+        candidate = RollingCandidate(
+            symbol="SPY",
+            con_id=12345,
+            current_expiry="20260410",
+            days_to_expiry=3,
+            position_size=-1.0,
+            avg_cost=100.0,
+            unrealized_pnl=-30.0,
+            right="P",
+            strike=440.0,
+            rolling_reason="approaching_expiry",
+        )
+        decision = RollingDecision(
+            candidate=candidate,
+            should_roll=True,
+            action="roll",
+            target_expiry="20260510",
+            target_strike=440.0,
+            reasoning="DTE=3 within threshold, rolling out",
+        )
+        data = decision.model_dump()
+        assert data["should_roll"] is True
+        assert data["action"] == "roll"
+        assert data["target_expiry"] == "20260510"
+        assert data["candidate"]["symbol"] == "SPY"
+
+    @pytest.mark.asyncio
+    async def test_expiration_monitor_empty_positions(self):
+        """ExpirationMonitor returns empty list when IB has no positions."""
+        from trading.agents.config import RollingConfig
+        from trading.agents.rolling import ExpirationMonitor
+
+        mock_ib = MagicMock()
+        mock_ib.positions.return_value = []
+
+        monitor = ExpirationMonitor(ib=mock_ib, config=RollingConfig())
+        result = await monitor.scan_expiring_positions()
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_expiration_monitor_filters_options_only(self):
+        """ExpirationMonitor only returns OPT positions, not STK."""
+        from datetime import date, timedelta
+
+        from trading.agents.config import RollingConfig
+        from trading.agents.rolling import ExpirationMonitor
+
+        near_expiry = (date.today() + timedelta(days=3)).strftime("%Y%m%d")
+
+        stock_contract = MagicMock()
+        stock_contract.secType = "STK"
+        stock_contract.symbol = "SPY"
+
+        option_contract = MagicMock()
+        option_contract.secType = "OPT"
+        option_contract.symbol = "SPY"
+        option_contract.lastTradeDateOrContractMonth = near_expiry
+        option_contract.strike = 440.0
+        option_contract.right = "P"
+        option_contract.conId = 12345
+
+        stock_pos = MagicMock()
+        stock_pos.contract = stock_contract
+        stock_pos.position = 100.0
+        stock_pos.avgCost = 450.0
+
+        option_pos = MagicMock()
+        option_pos.contract = option_contract
+        option_pos.position = -1.0
+        option_pos.avgCost = 100.0
+
+        mock_ib = MagicMock()
+        mock_ib.positions.return_value = [stock_pos, option_pos]
+        mock_ib.portfolio.return_value = []
+
+        monitor = ExpirationMonitor(ib=mock_ib, config=RollingConfig())
+        result = await monitor.scan_expiring_positions()
+
+        # Only the option position should be returned
+        assert len(result) == 1
+        assert result[0].symbol == "SPY"
+        assert result[0].right == "P"
+
+    @pytest.mark.asyncio
+    async def test_expiration_monitor_dte_filter(self):
+        """ExpirationMonitor only returns positions within DTE threshold."""
+        from datetime import date, timedelta
+
+        from trading.agents.config import RollingConfig
+        from trading.agents.rolling import ExpirationMonitor
+
+        def make_opt_pos(dte: int, con_id: int):
+            expiry = (date.today() + timedelta(days=dte)).strftime("%Y%m%d")
+            contract = MagicMock()
+            contract.secType = "OPT"
+            contract.symbol = "SPY"
+            contract.lastTradeDateOrContractMonth = expiry
+            contract.strike = 440.0
+            contract.right = "P"
+            contract.conId = con_id
+            pos = MagicMock()
+            pos.contract = contract
+            pos.position = -1.0
+            pos.avgCost = 100.0
+            return pos
+
+        positions = [
+            make_opt_pos(3, 101),
+            make_opt_pos(7, 102),
+            make_opt_pos(15, 103),
+            make_opt_pos(30, 104),
+        ]
+
+        mock_ib = MagicMock()
+        mock_ib.positions.return_value = positions
+        mock_ib.portfolio.return_value = []
+
+        config = RollingConfig(dte_threshold=7)
+        monitor = ExpirationMonitor(ib=mock_ib, config=config)
+        result = await monitor.scan_expiring_positions()
+
+        # Only DTE 3 and 7 should be returned
+        assert len(result) == 2
+        dtes = [c.days_to_expiry for c in result]
+        assert 3 in dtes
+        assert 7 in dtes
+        assert 15 not in dtes
+
+    def test_evaluate_rolling_close_on_excessive_loss(self):
+        """Positions with excessive loss are closed, not rolled."""
+        from trading.agents.config import RollingConfig
+        from trading.agents.rolling import ExpirationMonitor, RollingCandidate
+
+        candidate = RollingCandidate(
+            symbol="SPY",
+            con_id=12345,
+            current_expiry="20260410",
+            days_to_expiry=3,
+            position_size=-1.0,
+            avg_cost=100.0,
+            unrealized_pnl=-500.0,  # 5x original credit
+            right="P",
+            strike=440.0,
+            rolling_reason="approaching_expiry",
+        )
+
+        config = RollingConfig(max_loss_multiple=2.0)
+        monitor = ExpirationMonitor(ib=MagicMock(), config=config)
+        decisions = monitor.evaluate_rolling([candidate])
+
+        assert len(decisions) == 1
+        assert decisions[0].action == "close"
+        assert decisions[0].should_roll is False
+
+    def test_evaluate_rolling_roll_recommendation(self):
+        """Low-DTE positions with small losses are recommended for rolling."""
+        from trading.agents.config import RollingConfig
+        from trading.agents.rolling import ExpirationMonitor, RollingCandidate
+
+        candidate = RollingCandidate(
+            symbol="SPY",
+            con_id=12345,
+            current_expiry="20260410",
+            days_to_expiry=3,
+            position_size=-1.0,
+            avg_cost=100.0,
+            unrealized_pnl=-50.0,  # Within threshold
+            right="P",
+            strike=440.0,
+            rolling_reason="approaching_expiry",
+        )
+
+        config = RollingConfig(max_loss_multiple=2.0, preferred_roll_dte=30)
+        monitor = ExpirationMonitor(ib=MagicMock(), config=config)
+        decisions = monitor.evaluate_rolling([candidate])
+
+        assert len(decisions) == 1
+        assert decisions[0].action == "roll"
+        assert decisions[0].should_roll is True
+        assert decisions[0].target_expiry is not None
+
+    def test_rolling_config_defaults(self):
+        """RollingConfig defaults match expected values."""
+        from trading.agents.config import RollingConfig
+
+        config = RollingConfig()
+        assert config.dte_threshold == 7
+        assert config.max_loss_multiple == 2.0
+        assert config.preferred_roll_dte == 30
+        assert config.enabled is True
+
+
+# ============================================================================
+# Phase 6: Pipeline Integration Tests
+# ============================================================================
+
+
+class TestPhase6PipelineIntegration:
+    """Tests for Phase 6 pipeline topology and state integration."""
+
+    def test_pipeline_state_has_phase6_fields(self):
+        """PipelineState annotations include Phase 6 fields."""
+        from trading.agents.state import PipelineState
+
+        annotations = PipelineState.__annotations__
+        assert "regime_classification" in annotations
+        assert "rolling_candidates" in annotations
+        assert "rolling_decisions" in annotations
+
+    def test_stage_order_has_regime_and_rolling(self):
+        """STAGE_ORDER contains regime_detector and rolling_monitor."""
+        assert "regime_detector" in STAGE_ORDER
+        assert STAGE_ORDER["regime_detector"] == 0
+        assert "rolling_monitor" in STAGE_ORDER
+        assert STAGE_ORDER["rolling_monitor"] == 5
+
+    def test_pipeline_deps_has_phase6_fields(self):
+        """PipelineDeps has regime_detector and expiration_monitor fields."""
+        import dataclasses
+
+        fields = {f.name for f in dataclasses.fields(PipelineDeps)}
+        assert "regime_detector" in fields
+        assert "expiration_monitor" in fields
+
+    @pytest.mark.asyncio
+    async def test_create_pipeline_includes_regime_detector_node(self):
+        """create_pipeline adds regime_detector to the compiled graph."""
+        deps = PipelineDeps(
+            iv_engine=MagicMock(),
+            earnings_calendar=MagicMock(),
+            contract_resolver=MagicMock(),
+            risk_manager=MagicMock(),
+            execution_service=MagicMock(),
+            redis_client=MagicMock(),
+            session_factory=MagicMock(),
+            settings=MagicMock(),
+        )
+        graph = await create_pipeline(deps)
+        node_names = list(graph.nodes.keys())
+        assert "regime_detector" in node_names
+        assert "scanner" in node_names
+
+    def test_run_pipeline_accepts_rolling_candidates(self):
+        """run_pipeline signature includes rolling_candidates parameter."""
+        import inspect
+
+        sig = inspect.signature(run_pipeline)
+        assert "rolling_candidates" in sig.parameters
+        assert "regime_classification" in sig.parameters
+
+    def test_run_scanner_accepts_prompt_prefix(self):
+        """run_scanner signature includes prompt_prefix parameter."""
+        import inspect
+
+        from trading.agents.scanner import run_scanner as rs
+
+        sig = inspect.signature(rs)
+        assert "prompt_prefix" in sig.parameters
+        # Default should be empty string
+        assert sig.parameters["prompt_prefix"].default == ""
+
+
+# ============================================================================
+# Phase 6: App Wiring Tests
+# ============================================================================
+
+
+class TestPhase6AppWiring:
+    """Tests that TradingApp wires Phase 6 regime and rolling components."""
+
+    @pytest.mark.asyncio
+    async def test_app_creates_regime_detector(self, test_settings):
+        """TradingApp.startup() creates regime_detector when enabled."""
+        from trading.app import TradingApp
+
+        app = TradingApp(test_settings)
+        await app.startup()
+
+        # Regime is enabled by default in AgentConfig
+        assert app.regime_detector is not None
+        assert isinstance(app.regime_detector, RegimeDetector)
+        # Also wired into pipeline deps
+        assert app.pipeline_deps is not None
+        assert app.pipeline_deps.regime_detector is app.regime_detector
+
+    @pytest.mark.asyncio
+    async def test_app_regime_detector_disabled(self, test_settings):
+        """TradingApp.startup() skips regime_detector when disabled."""
+        from trading.app import TradingApp
+
+        test_settings.agents.regime.enabled = False
+        app = TradingApp(test_settings)
+        await app.startup()
+
+        assert app.regime_detector is None
+
+    @pytest.mark.asyncio
+    async def test_app_init_phase6_defaults(self, test_settings):
+        """TradingApp.__init__ sets Phase 6 attributes to None."""
+        from trading.app import TradingApp
+
+        app = TradingApp(test_settings)
+        assert app.regime_detector is None
+        assert app.expiration_monitor is None
+
+    @pytest.mark.asyncio
+    async def test_app_run_agent_pipeline_returns_none_without_compilation(
+        self, test_settings
+    ):
+        """run_agent_pipeline returns None when pipeline is not compiled."""
+        from trading.app import TradingApp
+
+        app = TradingApp(test_settings)
+        await app.startup()
+
+        # Pipeline not compiled (no connect_ib)
+        result = await app.run_agent_pipeline(["SPY"])
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_app_run_agent_pipeline_scans_rolling(self, test_settings):
+        """run_agent_pipeline calls scan_expiring_positions and passes results."""
+        from trading.agents.rolling import RollingCandidate
+        from trading.app import TradingApp
+
+        app = TradingApp(test_settings)
+        await app.startup()
+
+        # Create mock rolling candidates
+        mock_candidate = RollingCandidate(
+            symbol="SPY",
+            con_id=12345,
+            current_expiry="20260410",
+            days_to_expiry=3,
+            position_size=-1.0,
+            avg_cost=100.0,
+            right="P",
+            strike=440.0,
+            rolling_reason="approaching_expiry",
+        )
+
+        # Mock the expiration monitor
+        mock_monitor = AsyncMock()
+        mock_monitor.scan_expiring_positions.return_value = [mock_candidate]
+        app.expiration_monitor = mock_monitor
+
+        # Mock agent pipeline as a compiled graph
+        mock_graph = AsyncMock()
+        mock_state = make_pipeline_state(watchlist=["SPY"])
+        mock_graph.ainvoke.return_value = mock_state
+        app.agent_pipeline = mock_graph
+
+        # Patch run_pipeline to capture the call
+        with patch(
+            "trading.app.run_pipeline", new_callable=AsyncMock
+        ) as mock_run:
+            mock_run.return_value = mock_state
+
+            result = await app.run_agent_pipeline(["SPY"])
+
+            # Verify scan was called
+            mock_monitor.scan_expiring_positions.assert_called_once()
+
+            # Verify run_pipeline was called with rolling_candidates
+            mock_run.assert_called_once()
+            call_kwargs = mock_run.call_args
+            assert "rolling_candidates" in call_kwargs.kwargs
+            rolling = call_kwargs.kwargs["rolling_candidates"]
+            assert len(rolling) == 1
+            assert rolling[0]["symbol"] == "SPY"
+            assert rolling[0]["con_id"] == 12345

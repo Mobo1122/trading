@@ -2,9 +2,10 @@
 
 Provides the TradingApp class and main() function for starting the system.
 Configures structured logging, displays a startup banner, and wires all
-Phase 1-5 components: IB connection, database, Redis, order tracking,
+Phase 1-6 components: IB connection, database, Redis, order tracking,
 health monitoring, kill switch, market data streaming, IV analytics,
-earnings calendar, risk engine, order execution pipeline, and agent pipeline.
+earnings calendar, risk engine, order execution pipeline, agent pipeline,
+regime detection, and option position rolling.
 """
 
 from __future__ import annotations
@@ -15,7 +16,9 @@ import re
 import structlog
 
 from trading.agents.checkpoint import create_checkpointer
-from trading.agents.pipeline import PipelineDeps, create_pipeline
+from trading.agents.pipeline import PipelineDeps, create_pipeline, run_pipeline
+from trading.agents.regime import RegimeDetector
+from trading.agents.rolling import ExpirationMonitor
 from trading.analytics.earnings import EarningsCalendar
 from trading.analytics.iv_engine import IVEngine
 from trading.analytics.iv_history import IVHistoryManager
@@ -90,7 +93,7 @@ def _mask_password(url: str) -> str:
 class TradingApp:
     """Main trading application lifecycle manager.
 
-    Wires all Phase 1-5 components together and manages their lifecycle:
+    Wires all Phase 1-6 components together and manages their lifecycle:
       - IB connection manager (with auto-reconnect)
       - Database engine and session factory
       - Redis client
@@ -104,6 +107,8 @@ class TradingApp:
       - Risk repository, circuit breaker, and risk manager (risk engine)
       - Order execution service, fill tracker, and recovery manager (execution)
       - Agent pipeline deps and compiled LangGraph pipeline (AI agents)
+      - Regime detector (market condition classification)
+      - Expiration monitor (option position rolling logic)
     """
 
     def __init__(self, settings: Settings) -> None:
@@ -130,6 +135,9 @@ class TradingApp:
         # Phase 5: Agent pipeline
         self.pipeline_deps: PipelineDeps | None = None
         self.agent_pipeline = None
+        # Phase 6: Regime detection and rolling
+        self.regime_detector: RegimeDetector | None = None
+        self.expiration_monitor: ExpirationMonitor | None = None
 
     async def startup(self) -> None:
         """Start the trading application.
@@ -286,6 +294,15 @@ class TradingApp:
             settings=self.settings,
         )
 
+        # Phase 6: Create regime detector (non-critical)
+        if self.settings.agents.regime.enabled:
+            try:
+                self.regime_detector = RegimeDetector(self.settings.agents.regime)
+                self.pipeline_deps.regime_detector = self.regime_detector
+                self.log.info("regime_detector.created")
+            except Exception:
+                self.log.warning("regime_detector.create_failed", exc_info=True)
+
         self.log.info("startup.complete")
 
     async def connect_ib(self) -> None:
@@ -347,6 +364,19 @@ class TradingApp:
             except Exception:
                 self.log.warning("order_recovery.failed", exc_info=True)
 
+        # Phase 6: Create expiration monitor (non-critical, needs IB connection)
+        if self.settings.agents.rolling.enabled:
+            try:
+                self.expiration_monitor = ExpirationMonitor(
+                    ib=self.connection_manager.ib,
+                    config=self.settings.agents.rolling,
+                )
+                if self.pipeline_deps is not None:
+                    self.pipeline_deps.expiration_monitor = self.expiration_monitor
+                self.log.info("expiration_monitor.created")
+            except Exception:
+                self.log.warning("expiration_monitor.create_failed", exc_info=True)
+
         # Phase 5: Compile agent pipeline with checkpoint persistence (non-critical)
         if self.pipeline_deps is not None:
             try:
@@ -373,6 +403,54 @@ class TradingApp:
                         "agent_pipeline.compile_fallback_failed",
                         exc_info=True,
                     )
+
+    async def run_agent_pipeline(
+        self,
+        watchlist: list[str],
+        account_value: float = 100_000.0,
+    ) -> dict | None:
+        """Run the agent pipeline with rolling pre-check.
+
+        Single call-site for running the agent pipeline. Scans for
+        expiring positions via ExpirationMonitor before invoking
+        run_pipeline(), ensuring rolling candidates are always checked
+        and injected into pipeline state.
+
+        Args:
+            watchlist: Symbols to scan for opportunities.
+            account_value: Current account value for position sizing.
+
+        Returns:
+            The final PipelineState dict, or None if the pipeline is
+            not compiled or an error occurs.
+        """
+        try:
+            if self.agent_pipeline is None:
+                self.log.warning("agent_pipeline.not_compiled")
+                return None
+
+            # Scan for rolling candidates (non-fatal if monitor unavailable)
+            rolling_candidates: list[dict] = []
+            if self.expiration_monitor is not None:
+                try:
+                    candidates = await self.expiration_monitor.scan_expiring_positions()
+                    rolling_candidates = [c.model_dump() for c in candidates]
+                except Exception:
+                    self.log.warning(
+                        "agent_pipeline.rolling_scan_failed", exc_info=True
+                    )
+
+            result = await run_pipeline(
+                graph=self.agent_pipeline,
+                watchlist=watchlist,
+                account_value=account_value,
+                rolling_candidates=rolling_candidates,
+            )
+            return result
+
+        except Exception:
+            self.log.error("agent_pipeline.run_failed", exc_info=True)
+            return None
 
     async def shutdown(self) -> None:
         """Shut down the trading application.
