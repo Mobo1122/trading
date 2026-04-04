@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 5 of 8 (Core Agent Pipeline)
-Plan: 4 of 7 in current phase
+Plan: 5 of 7 in current phase
 Status: In progress
-Last activity: 2026-04-04 -- Completed 05-04-PLAN.md (risk manager and executor agents)
+Last activity: 2026-04-04 -- Completed 05-05-PLAN.md (LangGraph pipeline orchestration)
 
-Progress: [######----] 60% (25/42 plans complete)
+Progress: [######----] 62% (26/42 plans complete)
 
 ## Performance Metrics
 
@@ -31,10 +31,10 @@ Progress: [######----] 60% (25/42 plans complete)
 | 02-market-data-analytics | 5/5 | 19min | 4min |
 | 03-risk-engine | 6/6 | 24min | 4min |
 | 04-order-execution | 4/4 | 15min | 4min |
-| 05-core-agent-pipeline | 4/7 | 14min | 4min |
+| 05-core-agent-pipeline | 5/7 | 17min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 04-04 (5min), 05-01 (5min), 05-02 (3min), 05-03 (2min), 05-04 (4min)
+- Last 5 plans: 05-01 (5min), 05-02 (3min), 05-03 (2min), 05-04 (4min), 05-05 (3min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -119,6 +119,9 @@ Recent decisions affecting current work:
 - [05-04]: Symbol-based Greeks matching via Redis SCAN (not con_id) as known simplification for portfolio exposure
 - [05-04]: Temperature 0.1 for risk agent (qualitative flexibility), 0.0 for executor (pure execution)
 - [05-04]: _lookup_greeks is private async helper shared between tool and internal check_deterministic_risk logic
+- [05-05]: Node functions bind PipelineDeps via functools.partial (not lambda) for proper pickling/checkpointing
+- [05-05]: Pipeline short-circuits to END after scanner (no opportunities) and after risk (no approvals)
+- [05-05]: run_pipeline generates uuid4 thread_id for checkpoint isolation per run
 
 ### Pending Todos
 
@@ -135,5 +138,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-04
-Stopped at: Completed 05-04-PLAN.md (risk manager and executor agents). Next: 05-05-PLAN.md.
+Stopped at: Completed 05-05-PLAN.md (LangGraph pipeline orchestration). Next: 05-06-PLAN.md.
 Resume file: None
