@@ -109,16 +109,16 @@ Plans:
   3. Risk manager agent validates trade proposals against all deterministic rules and adds LLM-based risk assessment
   4. Executor agent routes validated trades to IB for execution via the order execution layer
   5. The full pipeline runs as scanner -> strategist -> risk manager -> executor via LangGraph, with state persistence between nodes
-**Plans**: TBD
+**Plans**: 7 plans
 
 Plans:
-- [ ] 05-01: PydanticAI agent framework setup and structured output contracts
-- [ ] 05-02: Scanner agent with parallel sub-scans (technical, fundamental, IV-based)
-- [ ] 05-03: Strategist agent with LLM strategy selection and quant strike/pricing
-- [ ] 05-04: Risk manager agent (LLM tier layered on deterministic rules)
-- [ ] 05-05: Executor agent integration with order execution layer
-- [ ] 05-06: LangGraph pipeline orchestration with state persistence and checkpoints
-- [ ] 05-07: Agent reasoning chain logging and decision audit trail
+- [ ] 05-01-PLAN.md — PydanticAI + LangGraph dependencies, agent config, shared output contracts, pipeline state, checkpoint factory, DB migration
+- [ ] 05-02-PLAN.md — Scanner agent with IV analytics, earnings, and market data tools
+- [ ] 05-03-PLAN.md — Strategist agent with option chain lookup and risk-aware trade construction
+- [ ] 05-04-PLAN.md — Risk manager agent (deterministic-first) and executor agent (OrderExecutionService wrapper)
+- [ ] 05-05-PLAN.md — LangGraph StateGraph pipeline orchestration with conditional routing and checkpoints
+- [ ] 05-06-PLAN.md — Agent decision logging with full reasoning chain DB persistence
+- [ ] 05-07-PLAN.md — App lifecycle wiring and comprehensive unit tests for all agent components
 
 ### Phase 6: Advanced Agent Intelligence
 **Goal**: The agent pipeline adapts to market conditions by detecting regimes and automatically manages expiring positions through rolling
@@ -186,7 +186,7 @@ Note: Phases 6 and 7 can execute in parallel after Phase 5 completes.
 | 2. Market Data & Analytics | 5/5 | Complete | 2026-04-02 |
 | 3. Risk Engine | 6/6 | Complete | 2026-04-03 |
 | 4. Order Execution | 4/4 | Complete | 2026-04-04 |
-| 5. Core Agent Pipeline | 0/7 | Not started | - |
+| 5. Core Agent Pipeline | 0/7 | Planning complete | - |
 | 6. Advanced Agent Intelligence | 0/3 | Not started | - |
 | 7. Dashboard & Monitoring | 0/6 | Not started | - |
 | 8. Alerts & Autonomy | 0/5 | Not started | - |
