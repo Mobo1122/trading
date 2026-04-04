@@ -91,13 +91,13 @@ Plans:
   2. System places multi-leg combo/spread orders (up to 6 legs) as a single atomic order to IB
   3. Orders submitted through the system are validated by the risk engine before reaching IB
   4. Fill tracking records execution price, slippage vs expected, and timestamps for every order
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 04-01: Single-leg order placement (market, limit, stop) with risk gate integration
-- [ ] 04-02: Multi-leg combo/spread order construction and submission
-- [ ] 04-03: Fill tracking, slippage measurement, and execution audit trail
-- [ ] 04-04: IB reconnection recovery for in-flight orders
+- [ ] 04-01-PLAN.md — ExecutionRecord DB schema, Pydantic execution models, and ComboOrderBuilder
+- [ ] 04-02-PLAN.md — OrderExecutionService with risk-gated single-leg and multi-leg order submission
+- [ ] 04-03-PLAN.md — FillTracker for event-driven fill recording and OrderRecoveryManager for reconnect reconciliation
+- [ ] 04-04-PLAN.md — App lifecycle wiring and comprehensive unit tests for all execution components
 
 ### Phase 5: Core Agent Pipeline
 **Goal**: A pipeline of AI agents (scanner, strategist, risk manager, executor) autonomously finds options opportunities, constructs trade proposals, validates them against risk rules, and executes approved trades -- with every decision logged in natural language
