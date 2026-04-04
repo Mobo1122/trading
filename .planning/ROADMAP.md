@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Risk Engine** - Enforce all risk constraints deterministically before any trade can execute
 - [x] **Phase 4: Order Execution** - Place and track single-leg and multi-leg orders through the risk gate to IB
 - [x] **Phase 5: Core Agent Pipeline** - Wire scanner, strategist, risk manager, and executor agents into a LangGraph-orchestrated pipeline
-- [ ] **Phase 6: Advanced Agent Intelligence** - Add market regime awareness and automated position rolling to the agent pipeline
+- [x] **Phase 6: Advanced Agent Intelligence** - Add market regime awareness and automated position rolling to the agent pipeline
 - [ ] **Phase 7: Dashboard & Monitoring** - Provide full visibility into positions, P&L, Greeks, agent reasoning, and system health via web dashboard
 - [ ] **Phase 8: Alerts & Autonomy** - Enable autonomous small-trade execution, human approval workflows, and real-time alerting
 
@@ -131,9 +131,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — Deterministic regime detection module with MarketRegime enum, RegimeDetector, strategy weight mapping, and RegimeConfig
-- [ ] 06-02-PLAN.md — ExpirationMonitor with position scanning, rolling criteria evaluation, and RollingConfig
-- [ ] 06-03-PLAN.md — Pipeline integration (regime node, scanner prompt injection, rolling pre-check), app wiring, and comprehensive tests
+- [x] 06-01-PLAN.md — Deterministic regime detection module with MarketRegime enum, RegimeDetector, strategy weight mapping, and RegimeConfig
+- [x] 06-02-PLAN.md — ExpirationMonitor with position scanning, rolling criteria evaluation, and RollingConfig
+- [x] 06-03-PLAN.md — Pipeline integration (regime node, scanner prompt injection, rolling pre-check), app wiring, and comprehensive tests
 
 ### Phase 7: Dashboard & Monitoring
 **Goal**: A web dashboard provides full real-time visibility into every aspect of the trading system -- positions, P&L, Greeks, agent reasoning, system health, and scenario analysis
@@ -187,6 +187,6 @@ Note: Phases 6 and 7 can execute in parallel after Phase 5 completes.
 | 3. Risk Engine | 6/6 | Complete | 2026-04-03 |
 | 4. Order Execution | 4/4 | Complete | 2026-04-04 |
 | 5. Core Agent Pipeline | 7/7 | Complete | 2026-04-04 |
-| 6. Advanced Agent Intelligence | 0/3 | Not started | - |
+| 6. Advanced Agent Intelligence | 3/3 | Complete | 2026-04-04 |
 | 7. Dashboard & Monitoring | 0/6 | Not started | - |
 | 8. Alerts & Autonomy | 0/5 | Not started | - |
