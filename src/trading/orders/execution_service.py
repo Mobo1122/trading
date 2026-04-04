@@ -426,3 +426,25 @@ class OrderExecutionService:
                 order_id=order_id,
                 exc_info=True,
             )
+
+    def resubscribe_trade(self, order_id: str, trade: Trade) -> None:
+        """Resubscribe to Trade events after reconnection recovery.
+
+        Called by OrderRecoveryManager when an in-flight order is found
+        in IB's open orders after reconnect. Re-registers the Trade in
+        the active trades dict and subscribes to its lifecycle events.
+
+        Args:
+            order_id: Internal order ID.
+            trade: The IB Trade object from reqOpenOrdersAsync.
+        """
+        self._active_trades[order_id] = trade
+        self._subscribe_trade_events(order_id, trade)
+
+        logger.info(
+            "trade_resubscribed",
+            order_id=order_id,
+            ib_order_id=trade.order.orderId,
+            ib_perm_id=trade.order.permId,
+            status=trade.orderStatus.status,
+        )
