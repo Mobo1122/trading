@@ -36,12 +36,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Agent Pipeline
 
-- [ ] **AGENT-01**: Scanner agent identifies options opportunities across equities, ETFs, and futures
-- [ ] **AGENT-02**: Strategist agent constructs trade proposals (strategy type + strike/expiration selection)
-- [ ] **AGENT-03**: Risk manager agent validates trade proposals against all risk rules
-- [ ] **AGENT-04**: Executor agent places validated trades via IB API
-- [ ] **AGENT-05**: Full pipeline runs as scanner -> strategist -> risk manager -> executor via LangGraph orchestration
-- [ ] **AGENT-06**: Every agent decision is logged with full reasoning chain in natural language
+- [x] **AGENT-01**: Scanner agent identifies options opportunities across equities, ETFs, and futures
+- [x] **AGENT-02**: Strategist agent constructs trade proposals (strategy type + strike/expiration selection)
+- [x] **AGENT-03**: Risk manager agent validates trade proposals against all risk rules
+- [x] **AGENT-04**: Executor agent places validated trades via IB API
+- [x] **AGENT-05**: Full pipeline runs as scanner -> strategist -> risk manager -> executor via LangGraph orchestration
+- [x] **AGENT-06**: Every agent decision is logged with full reasoning chain in natural language
 - [ ] **AGENT-07**: Scanner detects market regime (bull/bear/sideways/volatile) and adapts strategy mix
 - [ ] **AGENT-08**: System automatically rolls expiring positions to new expiration when appropriate
 
@@ -116,12 +116,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DATA-03 | Phase 2 | Complete |
 | DATA-04 | Phase 2 | Complete |
 | DATA-05 | Phase 2 | Complete |
-| AGENT-01 | Phase 5 | Pending |
-| AGENT-02 | Phase 5 | Pending |
-| AGENT-03 | Phase 5 | Pending |
-| AGENT-04 | Phase 5 | Pending |
-| AGENT-05 | Phase 5 | Pending |
-| AGENT-06 | Phase 5 | Pending |
+| AGENT-01 | Phase 5 | Complete |
+| AGENT-02 | Phase 5 | Complete |
+| AGENT-03 | Phase 5 | Complete |
+| AGENT-04 | Phase 5 | Complete |
+| AGENT-05 | Phase 5 | Complete |
+| AGENT-06 | Phase 5 | Complete |
 | AGENT-07 | Phase 6 | Pending |
 | AGENT-08 | Phase 6 | Pending |
 | DASH-01 | Phase 7 | Pending |
