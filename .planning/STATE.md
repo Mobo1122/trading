@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 6 of 8 (Advanced Agent Intelligence)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-04-04 -- Completed 06-01-PLAN.md (Market regime detection)
+Last activity: 2026-04-04 -- Completed 06-02-PLAN.md (Expiration monitor & rolling logic)
 
-Progress: [######----] 69% (29/42 plans complete)
+Progress: [#######---] 71% (30/42 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 29
+- Total plans completed: 30
 - Average duration: 3min
-- Total execution time: 1.73 hours
+- Total execution time: 1.78 hours
 
 **By Phase:**
 
@@ -32,10 +32,10 @@ Progress: [######----] 69% (29/42 plans complete)
 | 03-risk-engine | 6/6 | 24min | 4min |
 | 04-order-execution | 4/4 | 15min | 4min |
 | 05-core-agent-pipeline | 7/7 | 30min | 4min |
-| 06-advanced-agent-intelligence | 1/3 | 3min | 3min |
+| 06-advanced-agent-intelligence | 2/3 | 6min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 05-05 (3min), 05-06 (4min), 05-07 (9min), 06-01 (3min)
+- Last 5 plans: 05-06 (4min), 05-07 (9min), 06-01 (3min), 06-02 (3min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -134,6 +134,9 @@ Recent decisions affecting current work:
 - [06-01]: VIX asymmetric influence -- can upgrade volatility to high but only downgrades from normal
 - [06-01]: RegimeClassification co-located in regime.py with RegimeDetector (domain model with producer)
 - [06-01]: PipelineState pre-extended with rolling_candidates/rolling_decisions for Plan 02
+- [06-02]: Deterministic rolling logic (no LLM) -- safety-critical position management must be predictable
+- [06-02]: Close-before-roll safety rule -- positions exceeding max_loss_multiple closed, not rolled
+- [06-02]: Any-typed IB reference in ExpirationMonitor for test isolation (same as other agents)
 
 ### Pending Todos
 
@@ -150,5 +153,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-04
-Stopped at: Completed 06-01-PLAN.md (Market regime detection). Phase 6 in progress.
+Stopped at: Completed 06-02-PLAN.md (Expiration monitor & rolling logic). Phase 6 in progress.
 Resume file: None
