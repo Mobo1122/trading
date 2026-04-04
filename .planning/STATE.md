@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 5 of 8 (Core Agent Pipeline)
-Plan: 2 of 7 in current phase
+Plan: 3 of 7 in current phase
 Status: In progress
-Last activity: 2026-04-04 -- Completed 05-02-PLAN.md (scanner agent)
+Last activity: 2026-04-04 -- Completed 05-03-PLAN.md (strategist agent)
 
-Progress: [#####-----] 55% (23/42 plans complete)
+Progress: [######----] 57% (24/42 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 23
+- Total plans completed: 24
 - Average duration: 3min
-- Total execution time: 1.36 hours
+- Total execution time: 1.39 hours
 
 **By Phase:**
 
@@ -31,10 +31,10 @@ Progress: [#####-----] 55% (23/42 plans complete)
 | 02-market-data-analytics | 5/5 | 19min | 4min |
 | 03-risk-engine | 6/6 | 24min | 4min |
 | 04-order-execution | 4/4 | 15min | 4min |
-| 05-core-agent-pipeline | 2/7 | 8min | 4min |
+| 05-core-agent-pipeline | 3/7 | 10min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 04-02 (3min), 04-03 (4min), 04-04 (5min), 05-01 (5min), 05-02 (3min)
+- Last 5 plans: 04-03 (4min), 04-04 (5min), 05-01 (5min), 05-02 (3min), 05-03 (2min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -114,6 +114,8 @@ Recent decisions affecting current work:
 - [05-02]: Per-symbol tool calls (not batch) let the LLM decide which symbols to query
 - [05-02]: UsageLimits defaults from AgentConfig, not hardcoded (single source of truth)
 - [05-02]: Redis lookup uses HGETALL on market_data:{symbol} matching Phase 2 dual-write pattern
+- [05-03]: Strategist request_limit defaults to 15 (vs scanner's 10) because more tool calls per opportunity
+- [05-03]: Option chain tool returns full strikes/expirations without truncation for accurate strike selection
 
 ### Pending Todos
 
@@ -130,5 +132,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-04
-Stopped at: Completed 05-02-PLAN.md (scanner agent). Next: 05-03-PLAN.md.
+Stopped at: Completed 05-03-PLAN.md (strategist agent). Next: 05-04-PLAN.md.
 Resume file: None
