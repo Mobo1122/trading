@@ -76,6 +76,53 @@ class RegimeConfig(BaseModel):
     )
 
 
+class RollingConfig(BaseModel):
+    """Configuration for option position rolling logic.
+
+    Controls when expiring positions are identified for rolling, the
+    loss threshold beyond which a position should be closed rather than
+    rolled, and the target DTE for the replacement leg.
+
+    Attributes:
+        enabled: Whether automatic rolling evaluation is active.
+        dte_threshold: Roll positions with DTE <= this value.
+        max_loss_multiple: Don't roll if unrealized loss exceeds
+            this multiple of original credit received (close instead).
+        preferred_roll_dte: Target DTE for the new position after rolling.
+        allow_strike_adjustment: Allow rolling to a different strike
+            if position is ITM.
+        max_roll_attempts: Maximum consecutive rolls for the same
+            position before requiring manual review.
+    """
+
+    enabled: bool = True
+    dte_threshold: int = Field(
+        default=7,
+        ge=1,
+        le=30,
+        description="Roll positions with DTE <= this value",
+    )
+    max_loss_multiple: float = Field(
+        default=2.0,
+        gt=0,
+        description="Don't roll if unrealized loss > this * original credit",
+    )
+    preferred_roll_dte: int = Field(
+        default=30,
+        ge=7,
+        description="Target DTE for the new position after rolling",
+    )
+    allow_strike_adjustment: bool = Field(
+        default=True,
+        description="Allow rolling to a different strike",
+    )
+    max_roll_attempts: int = Field(
+        default=3,
+        ge=1,
+        description="Maximum consecutive rolls for the same position",
+    )
+
+
 class AgentConfig(BaseModel):
     """Configuration for the AI agent pipeline.
 
@@ -93,6 +140,8 @@ class AgentConfig(BaseModel):
             checkpoint persistence. Must NOT contain ``+asyncpg``.
         regime: Market regime detection configuration (thresholds,
             hysteresis). See :class:`RegimeConfig`.
+        rolling: Option position rolling configuration (DTE thresholds,
+            loss limits, target DTE). See :class:`RollingConfig`.
     """
 
     model: str = "anthropic:claude-sonnet-4-6"
@@ -108,6 +157,7 @@ class AgentConfig(BaseModel):
         "postgresql://trading:trading@localhost:5432/trading"
     )
     regime: RegimeConfig = RegimeConfig()
+    rolling: RollingConfig = RollingConfig()
 
     def get_model(self, agent_name: str) -> str:
         """Return the model for a specific agent, falling back to default.
