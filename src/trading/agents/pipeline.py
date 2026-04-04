@@ -17,6 +17,7 @@ Exports:
 
 from __future__ import annotations
 
+import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any
@@ -27,6 +28,7 @@ from langgraph.graph.state import CompiledStateGraph
 
 from trading.agents.config import AgentConfig
 from trading.agents.executor_agent import ExecutorDeps, run_executor
+from trading.agents.logging import log_agent_decision
 from trading.agents.risk_agent import RiskAgentDeps, run_risk_agent
 from trading.agents.scanner import ScannerDeps, run_scanner
 from trading.agents.state import PipelineState
@@ -83,6 +85,10 @@ async def _scan_node(state: PipelineState, deps: PipelineDeps) -> dict:
     list and records the abort reason so the routing function can
     short-circuit the pipeline.
     """
+    run_id = state.get("run_id", "")
+    input_summary = f"{len(state['watchlist'])} symbols: {', '.join(state['watchlist'][:5])}"
+    t0 = time.monotonic()
+
     try:
         scanner_deps = ScannerDeps(
             iv_engine=deps.iv_engine,
@@ -93,6 +99,7 @@ async def _scan_node(state: PipelineState, deps: PipelineDeps) -> dict:
         )
 
         output, usage, messages = await run_scanner(scanner_deps)
+        duration_ms = int((time.monotonic() - t0) * 1000)
 
         log.info(
             "pipeline.scan_node.complete",
@@ -102,13 +109,35 @@ async def _scan_node(state: PipelineState, deps: PipelineDeps) -> dict:
             response_tokens=usage.response_tokens,
         )
 
+        await log_agent_decision(
+            session_factory=deps.session_factory,
+            run_id=run_id,
+            agent_name="scanner",
+            output=output,
+            messages=messages,
+            usage=usage,
+            duration_ms=duration_ms,
+            input_summary=input_summary,
+        )
+
         return {
             "opportunities": [opp.model_dump() for opp in output.opportunities],
             "scanner_reasoning": output.reasoning,
         }
 
     except Exception as exc:
+        duration_ms = int((time.monotonic() - t0) * 1000)
         log.error("pipeline.scan_node.error", error=str(exc), exc_info=True)
+
+        await log_agent_decision(
+            session_factory=deps.session_factory,
+            run_id=run_id,
+            agent_name="scanner",
+            error=str(exc),
+            duration_ms=duration_ms,
+            input_summary=input_summary,
+        )
+
         return {
             "opportunities": [],
             "scanner_reasoning": f"Scanner failed: {exc}",
@@ -118,6 +147,10 @@ async def _scan_node(state: PipelineState, deps: PipelineDeps) -> dict:
 
 async def _strategist_node(state: PipelineState, deps: PipelineDeps) -> dict:
     """Run the strategist agent and return trade proposals."""
+    run_id = state.get("run_id", "")
+    input_summary = f"{len(state['opportunities'])} opportunities from scanner"
+    t0 = time.monotonic()
+
     try:
         risk_profile = (
             deps.settings.risk_limits.paper
@@ -136,6 +169,7 @@ async def _strategist_node(state: PipelineState, deps: PipelineDeps) -> dict:
         )
 
         output, usage, messages = await run_strategist(strategist_deps)
+        duration_ms = int((time.monotonic() - t0) * 1000)
 
         log.info(
             "pipeline.strategist_node.complete",
@@ -144,15 +178,37 @@ async def _strategist_node(state: PipelineState, deps: PipelineDeps) -> dict:
             response_tokens=usage.response_tokens,
         )
 
+        await log_agent_decision(
+            session_factory=deps.session_factory,
+            run_id=run_id,
+            agent_name="strategist",
+            output=output,
+            messages=messages,
+            usage=usage,
+            duration_ms=duration_ms,
+            input_summary=input_summary,
+        )
+
         return {
             "trade_proposals": [p.model_dump() for p in output.proposals],
             "strategist_reasoning": output.reasoning,
         }
 
     except Exception as exc:
+        duration_ms = int((time.monotonic() - t0) * 1000)
         log.error(
             "pipeline.strategist_node.error", error=str(exc), exc_info=True
         )
+
+        await log_agent_decision(
+            session_factory=deps.session_factory,
+            run_id=run_id,
+            agent_name="strategist",
+            error=str(exc),
+            duration_ms=duration_ms,
+            input_summary=input_summary,
+        )
+
         return {
             "trade_proposals": [],
             "strategist_reasoning": f"Strategist failed: {exc}",
@@ -162,6 +218,10 @@ async def _strategist_node(state: PipelineState, deps: PipelineDeps) -> dict:
 
 async def _risk_node(state: PipelineState, deps: PipelineDeps) -> dict:
     """Run the risk manager agent and return assessments."""
+    run_id = state.get("run_id", "")
+    input_summary = f"{len(state['trade_proposals'])} trade proposals from strategist"
+    t0 = time.monotonic()
+
     try:
         risk_deps = RiskAgentDeps(
             risk_manager=deps.risk_manager,
@@ -172,6 +232,7 @@ async def _risk_node(state: PipelineState, deps: PipelineDeps) -> dict:
         )
 
         output, usage, messages = await run_risk_agent(risk_deps)
+        duration_ms = int((time.monotonic() - t0) * 1000)
 
         log.info(
             "pipeline.risk_node.complete",
@@ -181,13 +242,35 @@ async def _risk_node(state: PipelineState, deps: PipelineDeps) -> dict:
             response_tokens=usage.response_tokens,
         )
 
+        await log_agent_decision(
+            session_factory=deps.session_factory,
+            run_id=run_id,
+            agent_name="risk_manager",
+            output=output,
+            messages=messages,
+            usage=usage,
+            duration_ms=duration_ms,
+            input_summary=input_summary,
+        )
+
         return {
             "risk_assessments": [a.model_dump() for a in output.assessments],
             "risk_reasoning": output.reasoning,
         }
 
     except Exception as exc:
+        duration_ms = int((time.monotonic() - t0) * 1000)
         log.error("pipeline.risk_node.error", error=str(exc), exc_info=True)
+
+        await log_agent_decision(
+            session_factory=deps.session_factory,
+            run_id=run_id,
+            agent_name="risk_manager",
+            error=str(exc),
+            duration_ms=duration_ms,
+            input_summary=input_summary,
+        )
+
         return {
             "risk_assessments": [],
             "risk_reasoning": f"Risk agent failed: {exc}",
@@ -197,12 +280,14 @@ async def _risk_node(state: PipelineState, deps: PipelineDeps) -> dict:
 
 async def _executor_node(state: PipelineState, deps: PipelineDeps) -> dict:
     """Run the executor agent and return execution results."""
-    try:
-        # Filter to only approved assessments
-        approved = [
-            a for a in state["risk_assessments"] if a.get("approved", False)
-        ]
+    run_id = state.get("run_id", "")
+    approved = [
+        a for a in state["risk_assessments"] if a.get("approved", False)
+    ]
+    input_summary = f"{len(approved)} approved proposals for execution"
+    t0 = time.monotonic()
 
+    try:
         executor_deps = ExecutorDeps(
             execution_service=deps.execution_service,
             session_factory=deps.session_factory,
@@ -212,6 +297,7 @@ async def _executor_node(state: PipelineState, deps: PipelineDeps) -> dict:
         )
 
         output, usage, messages = await run_executor(executor_deps)
+        duration_ms = int((time.monotonic() - t0) * 1000)
 
         log.info(
             "pipeline.executor_node.complete",
@@ -223,15 +309,37 @@ async def _executor_node(state: PipelineState, deps: PipelineDeps) -> dict:
             response_tokens=usage.response_tokens,
         )
 
+        await log_agent_decision(
+            session_factory=deps.session_factory,
+            run_id=run_id,
+            agent_name="executor",
+            output=output,
+            messages=messages,
+            usage=usage,
+            duration_ms=duration_ms,
+            input_summary=input_summary,
+        )
+
         return {
             "execution_results": [r.model_dump() for r in output.results],
             "executor_reasoning": output.reasoning,
         }
 
     except Exception as exc:
+        duration_ms = int((time.monotonic() - t0) * 1000)
         log.error(
             "pipeline.executor_node.error", error=str(exc), exc_info=True
         )
+
+        await log_agent_decision(
+            session_factory=deps.session_factory,
+            run_id=run_id,
+            agent_name="executor",
+            error=str(exc),
+            duration_ms=duration_ms,
+            input_summary=input_summary,
+        )
+
         return {
             "execution_results": [],
             "executor_reasoning": f"Executor failed: {exc}",
