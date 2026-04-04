@@ -38,6 +38,14 @@ market_data:
   earnings_lookout_days: 7
   finnhub_api_key: !ENV ${FINNHUB_API_KEY:}
 
+agents:
+  model: "anthropic:claude-sonnet-4-6"
+  temperature: 0.1
+  max_tokens: 2000
+  request_limit: 10
+  response_tokens_limit: 4000
+  checkpoint_conn_string: "postgresql://trading:trading@localhost:5432/trading"
+
 risk_limits:
   paper:
     position:

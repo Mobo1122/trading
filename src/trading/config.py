@@ -28,6 +28,7 @@ from pydantic import BaseModel, field_validator
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource
 from pyaml_env import parse_config
 
+from trading.agents.config import AgentConfig
 from trading.risk.config import RiskLimitsConfig
 
 logger = structlog.get_logger()
@@ -194,6 +195,7 @@ class Settings(BaseSettings):
     redis: RedisConfig = RedisConfig()
     logging: LoggingConfig = LoggingConfig()
     market_data: MarketDataConfig = MarketDataConfig()
+    agents: AgentConfig = AgentConfig()
     risk_limits: RiskLimitsConfig = RiskLimitsConfig()
 
     model_config = {
