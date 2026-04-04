@@ -81,8 +81,17 @@ class Order(Base):
         nullable=False,
     )
 
+    # Phase 4: Order execution columns
+    expected_price: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    total_commission: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    combo_legs: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    proposal_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+
     state_transitions: Mapped[list["OrderStateTransition"]] = relationship(
         "OrderStateTransition", back_populates="order", lazy="selectin"
+    )
+    execution_records: Mapped[list["ExecutionRecord"]] = relationship(
+        "ExecutionRecord", back_populates="order", lazy="selectin"
     )
 
     def __repr__(self) -> str:
@@ -378,4 +387,69 @@ class CircuitBreakerState(Base):
         return (
             f"<CircuitBreakerState(mode={self.mode!r}, "
             f"halt_type={self.halt_type!r}, halted={self.halted})>"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Order execution ORM models (Phase 4)
+# ---------------------------------------------------------------------------
+
+
+class ExecutionRecord(Base):
+    """Records individual fill executions with slippage tracking.
+
+    Each row represents a single fill event from IB, linked to the parent
+    Order. Tracks fill price, cumulative average, commission, and slippage
+    relative to the expected mid-market price at submission time.
+    """
+
+    __tablename__ = "execution_records"
+
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    order_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("orders.id"), nullable=False
+    )
+    exec_id: Mapped[str] = mapped_column(
+        String(50), unique=True, nullable=False
+    )
+    side: Mapped[str] = mapped_column(String(4), nullable=False)
+    quantity: Mapped[float] = mapped_column(Float, nullable=False)
+    price: Mapped[float] = mapped_column(Float, nullable=False)
+    avg_price: Mapped[float] = mapped_column(Float, nullable=False)
+    cum_qty: Mapped[float] = mapped_column(Float, nullable=False)
+    commission: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    realized_pnl: Mapped[Optional[float]] = mapped_column(
+        Float, nullable=True
+    )
+    exchange: Mapped[str] = mapped_column(String(20), nullable=False)
+    liquidity: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True
+    )
+    expected_price: Mapped[Optional[float]] = mapped_column(
+        Float, nullable=True
+    )
+    slippage: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    slippage_bps: Mapped[Optional[float]] = mapped_column(
+        Float, nullable=True
+    )
+
+    order: Mapped["Order"] = relationship(
+        "Order", back_populates="execution_records"
+    )
+
+    __table_args__ = (
+        Index("ix_execution_records_order_id", "order_id"),
+        Index("ix_execution_records_ts", "timestamp"),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<ExecutionRecord(exec_id={self.exec_id!r}, "
+            f"order_id={self.order_id!r}, price={self.price}, "
+            f"qty={self.quantity}, side={self.side!r})>"
         )
