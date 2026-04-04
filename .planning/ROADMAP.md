@@ -145,15 +145,15 @@ Plans:
   3. Dashboard shows complete trade history with timestamps, fill details, and the agent reasoning chain for each trade
   4. Dashboard shows system health indicators: IB connection status, agent heartbeats, data stream freshness
   5. User can run P&L scenario analysis (what-if: underlying +/- X%, IV +/- Y%, T+N days) from the dashboard
-**Plans**: TBD
+**Plans**: 6 plans
 
 Plans:
-- [ ] 07-01: FastAPI WebSocket server subscribing to Redis channels
-- [ ] 07-02: Next.js dashboard shell with real-time WebSocket state management
-- [ ] 07-03: Positions display with real-time P&L (per-position and portfolio)
-- [ ] 07-04: Portfolio Greeks display and trade history with reasoning chains
-- [ ] 07-05: System health monitoring panel (connection, heartbeats, data freshness)
-- [ ] 07-06: P&L scenario analysis engine and dashboard UI
+- [ ] 07-01-PLAN.md — FastAPI WebSocket server with Redis bridge, ChannelManager, Pydantic response models, and DashboardConfig
+- [ ] 07-02-PLAN.md — Next.js dashboard shell with shadcn/ui, Zustand stores, WebSocket client, and navigation layout
+- [ ] 07-03-PLAN.md — Positions display with real-time P&L (REST endpoints, positions table, portfolio summary, unit tests)
+- [ ] 07-04-PLAN.md — Portfolio Greeks display and trade history with agent reasoning chains
+- [ ] 07-05-PLAN.md — System health monitoring panel (connection status, data freshness, pipeline health)
+- [ ] 07-06-PLAN.md — P&L scenario analysis engine (Black-Scholes) and interactive dashboard UI
 
 ### Phase 8: Alerts & Autonomy
 **Goal**: The system operates autonomously for small trades, escalates large trades for human approval with full context, and sends real-time alerts for all significant events
