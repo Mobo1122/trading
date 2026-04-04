@@ -555,12 +555,14 @@ class TestDecisionLogging:
     """Tests for agent decision logging with mock session_factory."""
 
     def test_stage_order_mapping(self):
-        """STAGE_ORDER maps all four agents to correct ordinals."""
+        """STAGE_ORDER maps all agents to correct ordinals."""
+        assert STAGE_ORDER["regime_detector"] == 0
         assert STAGE_ORDER["scanner"] == 1
         assert STAGE_ORDER["strategist"] == 2
         assert STAGE_ORDER["risk_manager"] == 3
         assert STAGE_ORDER["executor"] == 4
-        assert len(STAGE_ORDER) == 4
+        assert STAGE_ORDER["rolling_monitor"] == 5
+        assert len(STAGE_ORDER) == 6
 
     def test_output_summary_scanner(self):
         """_get_output_summary produces correct summary for ScannerOutput."""

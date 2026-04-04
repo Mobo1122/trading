@@ -1,9 +1,13 @@
-"""LangGraph StateGraph pipeline orchestrating four trading agents.
+"""LangGraph StateGraph pipeline orchestrating trading agents.
 
-Connects scanner -> strategist -> risk_manager -> executor in a
-StateGraph with conditional routing:
+Connects regime_detector -> scanner -> strategist -> risk_manager ->
+executor in a StateGraph with conditional routing:
   - After scanner: short-circuits to END if no opportunities found.
   - After risk_manager: short-circuits to END if nothing approved.
+
+The regime_detector node runs first to classify market conditions and
+inject regime context into scanner prompts. Rolling candidates from
+ExpirationMonitor are passed in via ``run_pipeline()`` by the caller.
 
 Each node function wraps its PydanticAI agent run, translates between
 PipelineState (TypedDict with ``list[dict]``) and the agent's typed
@@ -29,7 +33,14 @@ from langgraph.graph.state import CompiledStateGraph
 from trading.agents.config import AgentConfig
 from trading.agents.executor_agent import ExecutorDeps, run_executor
 from trading.agents.logging import log_agent_decision
+from trading.agents.regime import (
+    REGIME_STRATEGY_WEIGHTS,
+    MarketRegime,
+    RegimeClassification,
+    RegimeDetector,
+)
 from trading.agents.risk_agent import RiskAgentDeps, run_risk_agent
+from trading.agents.rolling import ExpirationMonitor
 from trading.agents.scanner import ScannerDeps, run_scanner
 from trading.agents.state import PipelineState
 from trading.agents.strategist import StrategistDeps, run_strategist
@@ -60,6 +71,8 @@ class PipelineDeps:
         session_factory: SQLAlchemy async session factory.
         settings: Application settings (includes AgentConfig).
         account_value: Current account value in dollars for sizing.
+        regime_detector: Phase 6 regime detection module (optional).
+        expiration_monitor: Phase 6 expiration monitor for rolling (optional).
     """
 
     iv_engine: Any
@@ -71,11 +84,62 @@ class PipelineDeps:
     session_factory: Any
     settings: Settings
     account_value: float = 100_000.0
+    regime_detector: Any = None
+    expiration_monitor: Any = None
 
 
 # ---------------------------------------------------------------------------
 # Node functions
 # ---------------------------------------------------------------------------
+
+
+async def _regime_node(state: PipelineState, deps: PipelineDeps) -> dict:
+    """Run regime detection and return classification for downstream nodes.
+
+    Non-fatal: if regime detection is unavailable or errors, returns an
+    empty classification dict so the scanner runs without regime context.
+    """
+    run_id = state.get("run_id", "")
+
+    try:
+        if deps.regime_detector is None:
+            return {"regime_classification": {}}
+
+        # Compute IV batch for watchlist
+        iv_batch = await deps.iv_engine.compute_batch(state["watchlist"])
+
+        # Gather latest price data from Redis
+        price_data: dict[str, dict] = {}
+        for symbol in state["watchlist"]:
+            data = await deps.redis_client.hgetall(f"market_data:{symbol}")
+            if data:
+                price_data[symbol] = data
+
+        input_summary = f"{len(state['watchlist'])} symbols"
+
+        classification = await deps.regime_detector.detect(iv_batch, price_data)
+        t0 = time.monotonic()
+
+        await log_agent_decision(
+            session_factory=deps.session_factory,
+            run_id=run_id,
+            agent_name="regime_detector",
+            output=classification,
+            duration_ms=0,
+            input_summary=input_summary,
+        )
+
+        log.info(
+            "pipeline.regime_node.complete",
+            regime=classification.regime.value,
+            confidence=classification.confidence,
+        )
+
+        return {"regime_classification": classification.model_dump()}
+
+    except Exception as exc:
+        log.error("pipeline.regime_node.error", error=str(exc), exc_info=True)
+        return {"regime_classification": {}}
 
 
 async def _scan_node(state: PipelineState, deps: PipelineDeps) -> dict:
@@ -90,6 +154,31 @@ async def _scan_node(state: PipelineState, deps: PipelineDeps) -> dict:
     t0 = time.monotonic()
 
     try:
+        # Build regime context string for scanner prompt
+        regime_context = ""
+        regime_data = state.get("regime_classification", {})
+        if (
+            regime_data
+            and regime_data.get("regime")
+            and regime_data.get("regime") != "unknown"
+        ):
+            regime_name = regime_data["regime"]
+            try:
+                weights = REGIME_STRATEGY_WEIGHTS.get(
+                    MarketRegime(regime_name), {}
+                )
+            except ValueError:
+                weights = {}
+            regime_context = (
+                f"CURRENT MARKET REGIME: {regime_name}\n"
+                f"Regime confidence: {regime_data.get('confidence', 0):.0%}\n"
+                f"Trend: {regime_data.get('trend_signal', 'unknown')}, "
+                f"Volatility: {regime_data.get('volatility_signal', 'unknown')}\n"
+                f"Preferred strategy mix: {weights}\n"
+                f"Adapt your opportunity scanning to favor strategies that "
+                f"perform well in this regime.\n\n"
+            )
+
         scanner_deps = ScannerDeps(
             iv_engine=deps.iv_engine,
             earnings_calendar=deps.earnings_calendar,
@@ -98,7 +187,9 @@ async def _scan_node(state: PipelineState, deps: PipelineDeps) -> dict:
             settings=deps.settings,
         )
 
-        output, usage, messages = await run_scanner(scanner_deps)
+        output, usage, messages = await run_scanner(
+            scanner_deps, prompt_prefix=regime_context
+        )
         duration_ms = int((time.monotonic() - t0) * 1000)
 
         log.info(
@@ -392,19 +483,21 @@ async def create_pipeline(
 ) -> CompiledStateGraph:
     """Build and compile the LangGraph StateGraph pipeline.
 
-    The graph has 4 nodes (scanner, strategist, risk_manager, executor)
-    connected by edges with two conditional routing points that allow
-    early termination when there is nothing to do.
+    The graph has 5 nodes (regime_detector, scanner, strategist,
+    risk_manager, executor) connected by edges with two conditional
+    routing points that allow early termination when nothing to do.
 
     Graph topology::
 
-        START -> scanner -> [conditional] -> strategist -> risk_manager
-                    |                                         |
-                    +-> END (no opps)            [conditional]
-                                                      |
-                                              executor -> END
-                                                  |
-                                              END (no approvals)
+        START -> regime_detector -> scanner -> [conditional] -> strategist
+                                      |                             |
+                                      +-> END (no opps)      risk_manager
+                                                                    |
+                                                            [conditional]
+                                                                    |
+                                                            executor -> END
+                                                                |
+                                                            END (no approvals)
 
     Args:
         deps: Pipeline dependencies bound to node closures.
@@ -417,13 +510,15 @@ async def create_pipeline(
     workflow = StateGraph(PipelineState)
 
     # Add nodes -- bind deps via closure so each node receives them
+    workflow.add_node("regime_detector", lambda state: _regime_node(state, deps))
     workflow.add_node("scanner", lambda state: _scan_node(state, deps))
     workflow.add_node("strategist", lambda state: _strategist_node(state, deps))
     workflow.add_node("risk_manager", lambda state: _risk_node(state, deps))
     workflow.add_node("executor", lambda state: _executor_node(state, deps))
 
-    # Edges: START -> scanner
-    workflow.add_edge(START, "scanner")
+    # Edges: START -> regime_detector -> scanner
+    workflow.add_edge(START, "regime_detector")
+    workflow.add_edge("regime_detector", "scanner")
 
     # Conditional: scanner -> strategist or END
     workflow.add_conditional_edges("scanner", route_after_scan)
@@ -442,7 +537,7 @@ async def create_pipeline(
 
     log.info(
         "pipeline.created",
-        nodes=["scanner", "strategist", "risk_manager", "executor"],
+        nodes=["regime_detector", "scanner", "strategist", "risk_manager", "executor"],
         has_checkpointer=checkpointer is not None,
     )
 
@@ -459,6 +554,8 @@ async def run_pipeline(
     watchlist: list[str],
     run_id: str | None = None,
     account_value: float = 100_000.0,
+    regime_classification: dict | None = None,
+    rolling_candidates: list[dict] | None = None,
 ) -> PipelineState:
     """Run the full agent pipeline for a watchlist.
 
@@ -471,6 +568,10 @@ async def run_pipeline(
         watchlist: Symbols to scan for opportunities.
         run_id: Unique identifier for this run. Auto-generated if None.
         account_value: Current account value for position sizing.
+        regime_classification: Optional pre-computed regime classification
+            dict to inject into state (bypasses regime_detector node).
+        rolling_candidates: Optional pre-scanned rolling candidates from
+            ExpirationMonitor to inject into pipeline state.
 
     Returns:
         The final PipelineState after all nodes (or early termination).
@@ -490,6 +591,9 @@ async def run_pipeline(
         "executor_reasoning": "",
         "run_id": run_id,
         "aborted_at": "",
+        "regime_classification": regime_classification or {},
+        "rolling_candidates": rolling_candidates or [],
+        "rolling_decisions": [],
     }
 
     config = {"configurable": {"thread_id": run_id}}

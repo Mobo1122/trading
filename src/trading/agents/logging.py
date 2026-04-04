@@ -37,12 +37,19 @@ log = structlog.get_logger("trading.agents.logging")
 # ---------------------------------------------------------------------------
 
 STAGE_ORDER: dict[str, int] = {
+    "regime_detector": 0,
     "scanner": 1,
     "strategist": 2,
     "risk_manager": 3,
     "executor": 4,
+    "rolling_monitor": 5,
 }
-"""Mapping of agent names to their ordinal position in the pipeline."""
+"""Mapping of agent names to their ordinal position in the pipeline.
+
+``regime_detector`` (stage 0) runs before scanner to classify market
+conditions. ``rolling_monitor`` (stage 5) logs rolling evaluation
+decisions after executor completes.
+"""
 
 
 # ---------------------------------------------------------------------------
@@ -65,6 +72,10 @@ def _get_output_summary(output: BaseModel) -> str:
         A short summary string, e.g.
         ``"3 opportunities found"`` or ``"2 proposals constructed"``.
     """
+    # RegimeClassification
+    if hasattr(output, "regime"):
+        return f"regime: {output.regime}"
+
     # ScannerOutput
     if hasattr(output, "opportunities"):
         n = len(output.opportunities)

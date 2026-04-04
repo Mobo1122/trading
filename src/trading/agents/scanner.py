@@ -169,6 +169,7 @@ async def run_scanner(
     deps: ScannerDeps,
     model: str | None = None,
     usage_limits: UsageLimits | None = None,
+    prompt_prefix: str = "",
 ) -> tuple[ScannerOutput, Usage, list]:
     """Run the scanner agent with usage limits and structured output.
 
@@ -179,6 +180,8 @@ async def run_scanner(
             scanner-specific model from agent config (or default model).
         usage_limits: Token/request limits. Defaults to
             ``UsageLimits(request_limit=10, response_tokens_limit=4000)``.
+        prompt_prefix: Optional text prepended to the scanner prompt,
+            typically regime context from the regime detector node.
 
     Returns:
         Tuple of (ScannerOutput, Usage, all_messages) where:
@@ -196,6 +199,7 @@ async def run_scanner(
         )
 
     prompt = (
+        f"{prompt_prefix}"
         f"Scan the following watchlist for trading opportunities: "
         f"{', '.join(deps.watchlist)}. "
         f"Use your tools to gather IV data, earnings info, and market "
