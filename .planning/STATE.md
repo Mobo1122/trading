@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 5 of 8 (Core Agent Pipeline)
-Plan: 1 of 7 in current phase
+Plan: 2 of 7 in current phase
 Status: In progress
-Last activity: 2026-04-04 -- Completed 05-01-PLAN.md (agent foundation)
+Last activity: 2026-04-04 -- Completed 05-02-PLAN.md (scanner agent)
 
-Progress: [#####-----] 53% (22/42 plans complete)
+Progress: [#####-----] 55% (23/42 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 22
+- Total plans completed: 23
 - Average duration: 3min
-- Total execution time: 1.31 hours
+- Total execution time: 1.36 hours
 
 **By Phase:**
 
@@ -31,10 +31,10 @@ Progress: [#####-----] 53% (22/42 plans complete)
 | 02-market-data-analytics | 5/5 | 19min | 4min |
 | 03-risk-engine | 6/6 | 24min | 4min |
 | 04-order-execution | 4/4 | 15min | 4min |
-| 05-core-agent-pipeline | 1/7 | 5min | 5min |
+| 05-core-agent-pipeline | 2/7 | 8min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 04-01 (3min), 04-02 (3min), 04-03 (4min), 04-04 (5min), 05-01 (5min)
+- Last 5 plans: 04-02 (3min), 04-03 (4min), 04-04 (5min), 05-01 (5min), 05-02 (3min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -111,6 +111,9 @@ Recent decisions affecting current work:
 - [05-01]: Checkpoint factory validates psycopg connection string (rejects +asyncpg)
 - [05-01]: LangGraph checkpoint tables excluded from Alembic autogenerate via include_object filter
 - [05-01]: agent_decision_log is regular table (not hypertable) -- low-frequency audit events
+- [05-02]: Per-symbol tool calls (not batch) let the LLM decide which symbols to query
+- [05-02]: UsageLimits defaults from AgentConfig, not hardcoded (single source of truth)
+- [05-02]: Redis lookup uses HGETALL on market_data:{symbol} matching Phase 2 dual-write pattern
 
 ### Pending Todos
 
@@ -127,5 +130,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-04
-Stopped at: Completed 05-01-PLAN.md (agent foundation). Next: 05-02-PLAN.md.
+Stopped at: Completed 05-02-PLAN.md (scanner agent). Next: 05-03-PLAN.md.
 Resume file: None
