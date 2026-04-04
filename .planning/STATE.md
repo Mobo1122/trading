@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** The agents find and execute profitable options trades autonomously while never violating the user's risk constraints
-**Current focus:** Phase 5 COMPLETE - Ready for Phase 6 or Phase 7
+**Current focus:** Phase 6 in progress - Advanced Agent Intelligence
 
 ## Current Position
 
-Phase: 5 of 8 (Core Agent Pipeline)
-Plan: 7 of 7 in current phase
-Status: Phase complete
-Last activity: 2026-04-04 -- Completed 05-07-PLAN.md (App wiring and Phase 5 tests)
+Phase: 6 of 8 (Advanced Agent Intelligence)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-04-04 -- Completed 06-01-PLAN.md (Market regime detection)
 
-Progress: [######----] 67% (28/42 plans complete)
+Progress: [######----] 69% (29/42 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 28
+- Total plans completed: 29
 - Average duration: 3min
-- Total execution time: 1.68 hours
+- Total execution time: 1.73 hours
 
 **By Phase:**
 
@@ -32,10 +32,11 @@ Progress: [######----] 67% (28/42 plans complete)
 | 03-risk-engine | 6/6 | 24min | 4min |
 | 04-order-execution | 4/4 | 15min | 4min |
 | 05-core-agent-pipeline | 7/7 | 30min | 4min |
+| 06-advanced-agent-intelligence | 1/3 | 3min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 05-03 (2min), 05-04 (4min), 05-05 (3min), 05-06 (4min), 05-07 (9min)
-- Trend: consistent (05-07 longer due to 58 comprehensive tests)
+- Last 5 plans: 05-05 (3min), 05-06 (4min), 05-07 (9min), 06-01 (3min)
+- Trend: consistent
 
 *Updated after each plan completion*
 
@@ -128,6 +129,11 @@ Recent decisions affecting current work:
 - [05-07]: Pipeline deps created in startup(), pipeline compiled in connect_ib() (consistent with Phase 2-4 pattern)
 - [05-07]: Non-critical pipeline compilation: try checkpointed, fallback to no-checkpoint
 - [05-07]: ContractResolver/ContractCache wired into PipelineDeps for strategist tools
+- [06-01]: Deterministic regime detection (not ML) for testability and auditability in real-money system
+- [06-01]: Hysteresis prevents regime whiplash -- must persist N consecutive checks before switching
+- [06-01]: VIX asymmetric influence -- can upgrade volatility to high but only downgrades from normal
+- [06-01]: RegimeClassification co-located in regime.py with RegimeDetector (domain model with producer)
+- [06-01]: PipelineState pre-extended with rolling_candidates/rolling_decisions for Plan 02
 
 ### Pending Todos
 
@@ -144,5 +150,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-04
-Stopped at: Completed 05-07-PLAN.md (App wiring and Phase 5 tests). Phase 5 COMPLETE.
+Stopped at: Completed 06-01-PLAN.md (Market regime detection). Phase 6 in progress.
 Resume file: None
