@@ -2,9 +2,9 @@
 
 Provides the TradingApp class and main() function for starting the system.
 Configures structured logging, displays a startup banner, and wires all
-Phase 1, Phase 2, Phase 3, and Phase 4 components: IB connection, database,
-Redis, order tracking, health monitoring, kill switch, market data streaming,
-IV analytics, earnings calendar, risk engine, and order execution pipeline.
+Phase 1-5 components: IB connection, database, Redis, order tracking,
+health monitoring, kill switch, market data streaming, IV analytics,
+earnings calendar, risk engine, order execution pipeline, and agent pipeline.
 """
 
 from __future__ import annotations
@@ -14,11 +14,14 @@ import re
 
 import structlog
 
+from trading.agents.checkpoint import create_checkpointer
+from trading.agents.pipeline import PipelineDeps, create_pipeline
 from trading.analytics.earnings import EarningsCalendar
 from trading.analytics.iv_engine import IVEngine
 from trading.analytics.iv_history import IVHistoryManager
 from trading.cache.redis import close_redis_client, create_redis_client
 from trading.config import Settings
+from trading.contracts import ContractCache, ContractResolver
 from trading.core.connection import IBConnectionManager
 from trading.core.health import HealthMonitor
 from trading.db.engine import create_db_engine, create_session_factory
@@ -87,8 +90,7 @@ def _mask_password(url: str) -> str:
 class TradingApp:
     """Main trading application lifecycle manager.
 
-    Wires all Phase 1, Phase 2, Phase 3, and Phase 4 components together
-    and manages their lifecycle:
+    Wires all Phase 1-5 components together and manages their lifecycle:
       - IB connection manager (with auto-reconnect)
       - Database engine and session factory
       - Redis client
@@ -101,6 +103,7 @@ class TradingApp:
       - Earnings calendar (upcoming earnings events)
       - Risk repository, circuit breaker, and risk manager (risk engine)
       - Order execution service, fill tracker, and recovery manager (execution)
+      - Agent pipeline deps and compiled LangGraph pipeline (AI agents)
     """
 
     def __init__(self, settings: Settings) -> None:
@@ -124,12 +127,15 @@ class TradingApp:
         self.execution_service: OrderExecutionService | None = None
         self.fill_tracker: FillTracker | None = None
         self.order_recovery: OrderRecoveryManager | None = None
+        # Phase 5: Agent pipeline
+        self.pipeline_deps: PipelineDeps | None = None
+        self.agent_pipeline = None
 
     async def startup(self) -> None:
         """Start the trading application.
 
         Configures logging, prints startup banner, and creates all
-        Phase 1-4 components. Does NOT connect to IB -- call connect_ib()
+        Phase 1-5 components. Does NOT connect to IB -- call connect_ib()
         separately (allows testing without a running IB Gateway).
         """
         setup_logging(self.settings)
@@ -260,15 +266,36 @@ class TradingApp:
             session_factory=self.session_factory,
         )
 
+        # Phase 5: Agent pipeline dependencies (pipeline compiled in connect_ib)
+        contract_cache = ContractCache(
+            redis_client=self.redis_client,
+            ttl=self.settings.redis.contract_cache_ttl,
+        )
+        contract_resolver = ContractResolver(
+            ib=self.connection_manager.ib,
+            cache=contract_cache,
+        )
+        self.pipeline_deps = PipelineDeps(
+            iv_engine=self.iv_engine,
+            earnings_calendar=self.earnings_calendar,
+            contract_resolver=contract_resolver,
+            risk_manager=self.risk_manager,
+            execution_service=self.execution_service,
+            redis_client=self.redis_client,
+            session_factory=self.session_factory,
+            settings=self.settings,
+        )
+
         self.log.info("startup.complete")
 
     async def connect_ib(self) -> None:
-        """Connect to IB Gateway and start Phase 2-4 streaming components.
+        """Connect to IB Gateway and start Phase 2-5 streaming components.
 
         Separated from startup() to allow testing without IB Gateway.
         Must call startup() first. After IB connects, starts market data
         streaming, bootstraps IV history, refreshes earnings calendar,
-        restores circuit breaker state, and recovers in-flight orders.
+        restores circuit breaker state, recovers in-flight orders, and
+        compiles the agent pipeline with checkpoint persistence.
         """
         if self.connection_manager is None:
             raise RuntimeError("Must call startup() before connect_ib()")
@@ -319,6 +346,33 @@ class TradingApp:
                 self.log.info("order_recovery.complete", **summary)
             except Exception:
                 self.log.warning("order_recovery.failed", exc_info=True)
+
+        # Phase 5: Compile agent pipeline with checkpoint persistence (non-critical)
+        if self.pipeline_deps is not None:
+            try:
+                checkpointer = await create_checkpointer(
+                    self.settings.agents.checkpoint_conn_string
+                )
+                self.agent_pipeline = await create_pipeline(
+                    deps=self.pipeline_deps,
+                    checkpointer=checkpointer,
+                )
+                self.log.info("agent_pipeline.compiled")
+            except Exception:
+                self.log.warning("agent_pipeline.compile_failed", exc_info=True)
+                # Fallback: compile without checkpointer
+                try:
+                    self.agent_pipeline = await create_pipeline(
+                        deps=self.pipeline_deps,
+                    )
+                    self.log.info(
+                        "agent_pipeline.compiled_without_checkpoint"
+                    )
+                except Exception:
+                    self.log.warning(
+                        "agent_pipeline.compile_fallback_failed",
+                        exc_info=True,
+                    )
 
     async def shutdown(self) -> None:
         """Shut down the trading application.
