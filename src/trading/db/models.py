@@ -453,3 +453,80 @@ class ExecutionRecord(Base):
             f"order_id={self.order_id!r}, price={self.price}, "
             f"qty={self.quantity}, side={self.side!r})>"
         )
+
+
+# ---------------------------------------------------------------------------
+# Agent pipeline ORM models (Phase 5)
+# ---------------------------------------------------------------------------
+
+
+class AgentDecisionLog(Base):
+    """Audit log of every agent decision in the pipeline.
+
+    Records the full context of each agent run: input summary, structured
+    output, reasoning chain, message history, token usage, and timing.
+    Used for post-hoc analysis of why trades were proposed or rejected.
+
+    Regular table (not a hypertable) -- agent decisions are not
+    high-frequency time-series data.
+    """
+
+    __tablename__ = "agent_decision_log"
+
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    run_id: Mapped[str] = mapped_column(
+        String(36), nullable=False
+    )
+    agent_name: Mapped[str] = mapped_column(
+        String(20), nullable=False
+    )
+    stage_order: Mapped[int] = mapped_column(
+        Integer, nullable=False
+    )
+    input_summary: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )
+    output_summary: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )
+    reasoning: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )
+    messages_json: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )
+    output_json: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )
+    request_tokens: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True
+    )
+    response_tokens: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True
+    )
+    model_name: Mapped[Optional[str]] = mapped_column(
+        String(50), nullable=True
+    )
+    duration_ms: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True
+    )
+    error: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_agent_decision_log_run_id", "run_id"),
+        Index("ix_agent_decision_log_agent_ts", "agent_name", "timestamp"),
+        Index("ix_agent_decision_log_ts", "timestamp"),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<AgentDecisionLog(run_id={self.run_id!r}, "
+            f"agent={self.agent_name!r}, stage={self.stage_order})>"
+        )

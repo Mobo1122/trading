@@ -2,6 +2,10 @@
 
 Loads the database URL from the trading config system so that
 migrations use the same connection settings as the application.
+
+LangGraph checkpoint tables (created by AsyncPostgresSaver.setup())
+are excluded from autogenerate to prevent Alembic from trying to
+drop or modify them. See RESEARCH.md Pitfall 4.
 """
 
 import asyncio
@@ -14,6 +18,29 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 from trading.config import Settings
 from trading.db.models import Base
+
+# LangGraph checkpoint table prefixes to exclude from Alembic autogenerate.
+# AsyncPostgresSaver.setup() creates and manages these tables directly.
+_LANGGRAPH_TABLE_PREFIXES = ("checkpoint", "channel_values", "writes")
+
+
+def include_object(
+    object_: object,
+    name: str | None,
+    type_: str,
+    reflected: bool,
+    compare_to: object | None,
+) -> bool:
+    """Filter callback for Alembic autogenerate.
+
+    Excludes LangGraph internal checkpoint tables so Alembic does not
+    attempt to drop or modify them during ``alembic revision --autogenerate``.
+    """
+    if type_ == "table" and name is not None:
+        for prefix in _LANGGRAPH_TABLE_PREFIXES:
+            if name.startswith(prefix):
+                return False
+    return True
 
 # Alembic Config object -- provides access to .ini file values.
 config = context.config
@@ -42,6 +69,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -50,7 +78,11 @@ def run_migrations_offline() -> None:
 
 def do_run_migrations(connection: Connection) -> None:
     """Run migrations within a synchronous connection context."""
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        include_object=include_object,
+    )
 
     with context.begin_transaction():
         context.run_migrations()
