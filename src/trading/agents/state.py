@@ -29,6 +29,12 @@ class PipelineState(TypedDict):
         executor_reasoning: Executor agent's overall reasoning summary.
         run_id: Unique identifier for this pipeline run.
         aborted_at: Stage name where pipeline stopped early (empty if not).
+        regime_classification: Serialized RegimeClassification dict from
+            regime detector (see ``trading.agents.regime``).
+        rolling_candidates: Serialized candidate dicts accumulated across
+            rolling pipeline runs for downstream agents.
+        rolling_decisions: Serialized decision dicts accumulated across
+            rolling pipeline runs for downstream agents.
     """
 
     watchlist: list[str]
@@ -42,3 +48,6 @@ class PipelineState(TypedDict):
     executor_reasoning: str
     run_id: str
     aborted_at: str
+    regime_classification: dict
+    rolling_candidates: list[dict]
+    rolling_decisions: list[dict]

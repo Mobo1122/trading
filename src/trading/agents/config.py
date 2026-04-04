@@ -15,7 +15,65 @@ See RESEARCH.md Pitfall 1 for details.
 
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+class RegimeConfig(BaseModel):
+    """Configuration for market regime detection.
+
+    Controls the thresholds and hysteresis behavior of the regime
+    detector. Regime detection classifies market conditions into one
+    of 6 regimes (BULL_QUIET, BULL_VOLATILE, BEAR_QUIET, BEAR_VOLATILE,
+    SIDEWAYS, UNKNOWN) to adapt strategy selection to current conditions.
+
+    Attributes:
+        enabled: Whether regime detection is active.
+        hysteresis_count: Regime must persist N consecutive checks before
+            switching (prevents whiplash).
+        iv_rank_high_threshold: IV rank above this signals high volatility.
+        iv_rank_low_threshold: IV rank below this signals low volatility.
+        momentum_lookback_days: Number of price data points for momentum.
+        momentum_bull_threshold: Momentum above this signals bullish trend.
+        momentum_bear_threshold: Momentum below this signals bearish trend.
+        vix_high_threshold: VIX above this signals high volatility.
+        vix_low_threshold: VIX below this signals low volatility.
+    """
+
+    enabled: bool = True
+    hysteresis_count: int = Field(
+        default=3,
+        ge=1,
+        description="Regime must persist N consecutive checks before switching",
+    )
+    iv_rank_high_threshold: float = Field(
+        default=60.0,
+        description="IV rank above this = high volatility signal",
+    )
+    iv_rank_low_threshold: float = Field(
+        default=30.0,
+        description="IV rank below this = low volatility signal",
+    )
+    momentum_lookback_days: int = Field(
+        default=20,
+        ge=5,
+        description="Number of price data points for momentum calculation",
+    )
+    momentum_bull_threshold: float = Field(
+        default=0.02,
+        description="Price momentum > this = bullish trend signal",
+    )
+    momentum_bear_threshold: float = Field(
+        default=-0.02,
+        description="Price momentum < this = bearish trend signal",
+    )
+    vix_high_threshold: float = Field(
+        default=25.0,
+        description="VIX above this = high volatility (if VIX available)",
+    )
+    vix_low_threshold: float = Field(
+        default=15.0,
+        description="VIX below this = low volatility (if VIX available)",
+    )
 
 
 class AgentConfig(BaseModel):
@@ -33,6 +91,8 @@ class AgentConfig(BaseModel):
         response_tokens_limit: PydanticAI UsageLimits.response_tokens_limit.
         checkpoint_conn_string: psycopg connection string for LangGraph
             checkpoint persistence. Must NOT contain ``+asyncpg``.
+        regime: Market regime detection configuration (thresholds,
+            hysteresis). See :class:`RegimeConfig`.
     """
 
     model: str = "anthropic:claude-sonnet-4-6"
@@ -47,6 +107,7 @@ class AgentConfig(BaseModel):
     checkpoint_conn_string: str = (
         "postgresql://trading:trading@localhost:5432/trading"
     )
+    regime: RegimeConfig = RegimeConfig()
 
     def get_model(self, agent_name: str) -> str:
         """Return the model for a specific agent, falling back to default.
