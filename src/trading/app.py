@@ -2,9 +2,9 @@
 
 Provides the TradingApp class and main() function for starting the system.
 Configures structured logging, displays a startup banner, and wires all
-Phase 1, Phase 2, and Phase 3 components: IB connection, database, Redis,
-order tracking, health monitoring, kill switch, market data streaming,
-IV analytics, earnings calendar, and risk engine.
+Phase 1, Phase 2, Phase 3, and Phase 4 components: IB connection, database,
+Redis, order tracking, health monitoring, kill switch, market data streaming,
+IV analytics, earnings calendar, risk engine, and order execution pipeline.
 """
 
 from __future__ import annotations
@@ -28,6 +28,9 @@ from trading.market_data.manager import MarketDataManager
 from trading.market_data.staleness import StalenessMonitor
 from trading.market_data.subscriber import SubscriptionManager
 from trading.market_data.writer import TimescaleDBWriter
+from trading.orders.execution_service import OrderExecutionService
+from trading.orders.fill_tracker import FillTracker
+from trading.orders.recovery import OrderRecoveryManager
 from trading.orders.tracker import OrderTracker
 from trading.risk.circuit_breaker import CircuitBreaker
 from trading.risk.manager import RiskManager
@@ -84,8 +87,8 @@ def _mask_password(url: str) -> str:
 class TradingApp:
     """Main trading application lifecycle manager.
 
-    Wires all Phase 1, Phase 2, and Phase 3 components together and manages
-    their lifecycle:
+    Wires all Phase 1, Phase 2, Phase 3, and Phase 4 components together
+    and manages their lifecycle:
       - IB connection manager (with auto-reconnect)
       - Database engine and session factory
       - Redis client
@@ -97,6 +100,7 @@ class TradingApp:
       - IV engine and history (implied volatility analytics)
       - Earnings calendar (upcoming earnings events)
       - Risk repository, circuit breaker, and risk manager (risk engine)
+      - Order execution service, fill tracker, and recovery manager (execution)
     """
 
     def __init__(self, settings: Settings) -> None:
@@ -117,12 +121,15 @@ class TradingApp:
         self.risk_repository: RiskRepository | None = None
         self.circuit_breaker: CircuitBreaker | None = None
         self.risk_manager: RiskManager | None = None
+        self.execution_service: OrderExecutionService | None = None
+        self.fill_tracker: FillTracker | None = None
+        self.order_recovery: OrderRecoveryManager | None = None
 
     async def startup(self) -> None:
         """Start the trading application.
 
         Configures logging, prints startup banner, and creates all
-        Phase 1 components. Does NOT connect to IB -- call connect_ib()
+        Phase 1-4 components. Does NOT connect to IB -- call connect_ib()
         separately (allows testing without a running IB Gateway).
         """
         setup_logging(self.settings)
@@ -237,14 +244,31 @@ class TradingApp:
             mode=self.settings.trading.mode,
         )
 
+        # Phase 4: Order execution components
+        self.fill_tracker = FillTracker(session_factory=self.session_factory)
+        self.execution_service = OrderExecutionService(
+            ib=self.connection_manager.ib,
+            risk_manager=self.risk_manager,
+            order_tracker=self.order_tracker,
+            session_factory=self.session_factory,
+        )
+        self.execution_service.fill_tracker = self.fill_tracker
+        self.order_recovery = OrderRecoveryManager(
+            ib=self.connection_manager.ib,
+            order_tracker=self.order_tracker,
+            execution_service=self.execution_service,
+            session_factory=self.session_factory,
+        )
+
         self.log.info("startup.complete")
 
     async def connect_ib(self) -> None:
-        """Connect to IB Gateway and start Phase 2 streaming components.
+        """Connect to IB Gateway and start Phase 2-4 streaming components.
 
         Separated from startup() to allow testing without IB Gateway.
         Must call startup() first. After IB connects, starts market data
-        streaming, bootstraps IV history, and refreshes earnings calendar.
+        streaming, bootstraps IV history, refreshes earnings calendar,
+        restores circuit breaker state, and recovers in-flight orders.
         """
         if self.connection_manager is None:
             raise RuntimeError("Must call startup() before connect_ib()")
@@ -287,6 +311,14 @@ class TradingApp:
                 self.log.info("circuit_breaker.state_restored")
             except Exception:
                 self.log.warning("circuit_breaker.restore_failed", exc_info=True)
+
+        # Phase 4: Recover in-flight orders after reconnect (non-critical)
+        if self.order_recovery is not None:
+            try:
+                summary = await self.order_recovery.recover_after_reconnect()
+                self.log.info("order_recovery.complete", **summary)
+            except Exception:
+                self.log.warning("order_recovery.failed", exc_info=True)
 
     async def shutdown(self) -> None:
         """Shut down the trading application.
