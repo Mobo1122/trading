@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 5 of 8 (Core Agent Pipeline)
-Plan: 0 of 7 in current phase
-Status: Ready to plan
-Last activity: 2026-04-04 -- Phase 4 complete (4/4 plans, verified, all 204 tests passing)
+Plan: 1 of 7 in current phase
+Status: In progress
+Last activity: 2026-04-04 -- Completed 05-01-PLAN.md (agent foundation)
 
-Progress: [████��░░░░░] 50% (4/8 phases complete)
+Progress: [#####-----] 53% (22/42 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 21
+- Total plans completed: 22
 - Average duration: 3min
-- Total execution time: 1.23 hours
+- Total execution time: 1.31 hours
 
 **By Phase:**
 
@@ -31,9 +31,10 @@ Progress: [████��░░░░░] 50% (4/8 phases complete)
 | 02-market-data-analytics | 5/5 | 19min | 4min |
 | 03-risk-engine | 6/6 | 24min | 4min |
 | 04-order-execution | 4/4 | 15min | 4min |
+| 05-core-agent-pipeline | 1/7 | 5min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: 03-06 (6min), 04-01 (3min), 04-02 (3min), 04-03 (4min), 04-04 (5min)
+- Last 5 plans: 04-01 (3min), 04-02 (3min), 04-03 (4min), 04-04 (5min), 05-01 (5min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -105,6 +106,11 @@ Recent decisions affecting current work:
 - [04-04]: Phase 4 follows same lifecycle pattern as Phase 2/3: create in startup(), non-critical bootstrap in connect_ib()
 - [04-04]: Order recovery is non-critical (try/except with warning) matching circuit breaker bootstrap pattern
 - [04-04]: FillTracker wired via property setter to break circular dependency during construction
+- [05-01]: Used pydantic-ai-slim[anthropic] instead of full pydantic-ai to avoid Logfire dependency
+- [05-01]: PipelineState uses list[dict] (not Pydantic models) for LangGraph checkpoint serialization
+- [05-01]: Checkpoint factory validates psycopg connection string (rejects +asyncpg)
+- [05-01]: LangGraph checkpoint tables excluded from Alembic autogenerate via include_object filter
+- [05-01]: agent_decision_log is regular table (not hypertable) -- low-frequency audit events
 
 ### Pending Todos
 
@@ -121,5 +127,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-04
-Stopped at: Phase 4 complete (4/4 plans, verified). Ready for Phase 5.
+Stopped at: Completed 05-01-PLAN.md (agent foundation). Next: 05-02-PLAN.md.
 Resume file: None
