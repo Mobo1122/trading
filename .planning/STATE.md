@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** The agents find and execute profitable options trades autonomously while never violating the user's risk constraints
-**Current focus:** Phase 5 - Core Agent Pipeline
+**Current focus:** Phase 5 COMPLETE - Ready for Phase 6 or Phase 7
 
 ## Current Position
 
 Phase: 5 of 8 (Core Agent Pipeline)
-Plan: 6 of 7 in current phase
-Status: In progress
-Last activity: 2026-04-04 -- Completed 05-06-PLAN.md (Agent decision logging)
+Plan: 7 of 7 in current phase
+Status: Phase complete
+Last activity: 2026-04-04 -- Completed 05-07-PLAN.md (App wiring and Phase 5 tests)
 
-Progress: [######----] 64% (27/42 plans complete)
+Progress: [######----] 67% (28/42 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 27
+- Total plans completed: 28
 - Average duration: 3min
-- Total execution time: 1.53 hours
+- Total execution time: 1.68 hours
 
 **By Phase:**
 
@@ -31,11 +31,11 @@ Progress: [######----] 64% (27/42 plans complete)
 | 02-market-data-analytics | 5/5 | 19min | 4min |
 | 03-risk-engine | 6/6 | 24min | 4min |
 | 04-order-execution | 4/4 | 15min | 4min |
-| 05-core-agent-pipeline | 6/7 | 21min | 4min |
+| 05-core-agent-pipeline | 7/7 | 30min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 05-02 (3min), 05-03 (2min), 05-04 (4min), 05-05 (3min), 05-06 (4min)
-- Trend: consistent
+- Last 5 plans: 05-03 (2min), 05-04 (4min), 05-05 (3min), 05-06 (4min), 05-07 (9min)
+- Trend: consistent (05-07 longer due to 58 comprehensive tests)
 
 *Updated after each plan completion*
 
@@ -125,6 +125,9 @@ Recent decisions affecting current work:
 - [05-06]: Logging errors are non-fatal (try/except wrapper, matches 03-05/04-03 pattern)
 - [05-06]: model_name left as None since PydanticAI Usage object does not expose it
 - [05-06]: Input summaries are descriptive strings per node rather than raw serialized data
+- [05-07]: Pipeline deps created in startup(), pipeline compiled in connect_ib() (consistent with Phase 2-4 pattern)
+- [05-07]: Non-critical pipeline compilation: try checkpointed, fallback to no-checkpoint
+- [05-07]: ContractResolver/ContractCache wired into PipelineDeps for strategist tools
 
 ### Pending Todos
 
@@ -136,10 +139,10 @@ None yet.
 - [Phase 1]: IB Gateway Docker image is community-maintained, not official -- stability unknown
 - [Phase 1]: IB market data subscription costs need audit ($30-100/month for real-time US options)
 - [Phase 1]: Docker not installed on dev machine -- Docker Compose validated via YAML parser only
-- [Phase 5]: LangGraph + PydanticAI combined integration pattern has sparse documentation -- needs prototyping spike
+- [Phase 5]: LangGraph + PydanticAI integration validated in code -- sparse documentation concern resolved
 
 ## Session Continuity
 
 Last session: 2026-04-04
-Stopped at: Completed 05-06-PLAN.md (Agent decision logging). Next: 05-07-PLAN.md.
+Stopped at: Completed 05-07-PLAN.md (App wiring and Phase 5 tests). Phase 5 COMPLETE.
 Resume file: None
