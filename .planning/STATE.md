@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** The agents find and execute profitable options trades autonomously while never violating the user's risk constraints
-**Current focus:** Phase 6 in progress - Advanced Agent Intelligence
+**Current focus:** Phase 6 complete - Advanced Agent Intelligence
 
 ## Current Position
 
 Phase: 6 of 8 (Advanced Agent Intelligence)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-04-04 -- Completed 06-02-PLAN.md (Expiration monitor & rolling logic)
+Plan: 3 of 3 in current phase
+Status: Phase complete
+Last activity: 2026-04-04 -- Completed 06-03-PLAN.md (Pipeline wiring, scanner injection, app lifecycle & tests)
 
-Progress: [#######---] 71% (30/42 plans complete)
+Progress: [########--] 74% (31/42 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 30
-- Average duration: 3min
-- Total execution time: 1.78 hours
+- Total plans completed: 31
+- Average duration: 4min
+- Total execution time: 1.92 hours
 
 **By Phase:**
 
@@ -32,10 +32,10 @@ Progress: [#######---] 71% (30/42 plans complete)
 | 03-risk-engine | 6/6 | 24min | 4min |
 | 04-order-execution | 4/4 | 15min | 4min |
 | 05-core-agent-pipeline | 7/7 | 30min | 4min |
-| 06-advanced-agent-intelligence | 2/3 | 6min | 3min |
+| 06-advanced-agent-intelligence | 3/3 | 14min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: 05-06 (4min), 05-07 (9min), 06-01 (3min), 06-02 (3min)
+- Last 5 plans: 05-07 (9min), 06-01 (3min), 06-02 (3min), 06-03 (8min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -137,6 +137,9 @@ Recent decisions affecting current work:
 - [06-02]: Deterministic rolling logic (no LLM) -- safety-critical position management must be predictable
 - [06-02]: Close-before-roll safety rule -- positions exceeding max_loss_multiple closed, not rolled
 - [06-02]: Any-typed IB reference in ExpirationMonitor for test isolation (same as other agents)
+- [06-03]: Regime context injected via prompt_prefix parameter, not agent instruction modification
+- [06-03]: Rolling pre-check in app.run_agent_pipeline(), not inside pipeline node (cleaner separation)
+- [06-03]: Regime detection errors return empty dict -- scanner runs without regime context (non-fatal)
 
 ### Pending Todos
 
@@ -153,5 +156,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-04
-Stopped at: Completed 06-02-PLAN.md (Expiration monitor & rolling logic). Phase 6 in progress.
+Stopped at: Completed 06-03-PLAN.md (Pipeline wiring, scanner injection, app lifecycle & tests). Phase 6 complete.
 Resume file: None
