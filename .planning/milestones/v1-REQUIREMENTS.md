@@ -1,4 +1,12 @@
-# Requirements: Options Trading AI Agents
+# Requirements Archive: v1 Options Trading AI Agents
+
+**Archived:** 2026-04-05
+**Status:** SHIPPED
+
+This is the archived requirements specification for v1.
+For current requirements, see `.planning/REQUIREMENTS.md` (created for next milestone).
+
+---
 
 **Defined:** 2026-03-25
 **Core Value:** The agents find and execute profitable options trades autonomously while never violating the user's risk constraints
@@ -94,8 +102,6 @@ Explicitly excluded. Documented to prevent scope creep.
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | CONN-01 | Phase 1 | Complete |
@@ -106,29 +112,29 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CONN-06 | Phase 1 | Complete |
 | RISK-01 | Phase 3 | Complete |
 | RISK-02 | Phase 3 | Complete |
-| RISK-03 | Phase 3 | Complete |
+| RISK-03 | Phase 3, 9 | Complete |
 | RISK-04 | Phase 3 | Complete |
 | RISK-05 | Phase 3 | Complete |
 | RISK-06 | Phase 3 | Complete |
-| RISK-07 | Phase 3 | Complete |
+| RISK-07 | Phase 3, 9 | Complete |
 | DATA-01 | Phase 2 | Complete |
 | DATA-02 | Phase 2 | Complete |
 | DATA-03 | Phase 2 | Complete |
 | DATA-04 | Phase 2 | Complete |
 | DATA-05 | Phase 2 | Complete |
-| AGENT-01 | Phase 5 | Complete |
-| AGENT-02 | Phase 5 | Complete |
+| AGENT-01 | Phase 5, 9 | Complete |
+| AGENT-02 | Phase 5, 9 | Complete |
 | AGENT-03 | Phase 5 | Complete |
 | AGENT-04 | Phase 5 | Complete |
 | AGENT-05 | Phase 5 | Complete |
 | AGENT-06 | Phase 5 | Complete |
-| AGENT-07 | Phase 6 | Complete |
-| AGENT-08 | Phase 6 | Complete |
-| DASH-01 | Phase 7 | Complete |
+| AGENT-07 | Phase 6, 9 | Complete |
+| AGENT-08 | Phase 6, 10 | Complete |
+| DASH-01 | Phase 7, 9 | Complete |
 | DASH-02 | Phase 7 | Complete |
 | DASH-03 | Phase 7 | Complete |
 | DASH-04 | Phase 7 | Complete |
-| DASH-05 | Phase 7 | Complete |
+| DASH-05 | Phase 7, 9 | Complete |
 | DASH-06 | Phase 7 | Complete |
 | AUTO-01 | Phase 8 | Complete |
 | AUTO-02 | Phase 8 | Complete |
@@ -138,9 +144,23 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 **Coverage:**
 - v1 requirements: 37 total
-- Mapped to phases: 37
-- Unmapped: 0
+- Shipped: 37 (100%)
+- Adjusted: 0
+- Dropped: 0
 
 ---
-*Requirements defined: 2026-03-25*
-*Last updated: 2026-04-04 after Phase 4 completion*
+
+## Milestone Summary
+
+**Shipped:** 37 of 37 v1 requirements
+**Adjusted:** None — all requirements shipped as originally specified
+**Dropped:** None
+
+**Notes:**
+- RISK-03, RISK-07 required Phase 9 fix (FillTracker → CircuitBreaker wiring) to be fully operational
+- AGENT-01, AGENT-02, AGENT-07 required Phase 9 fix (Redis namespace mismatch) for live data access
+- AGENT-08 required Phase 10 (rolling pipeline node) to complete the end-to-end rolling flow
+- DASH-01, DASH-05 required Phase 9 fixes (realized P&L publisher, health monitor) for full dashboard accuracy
+
+---
+*Archived: 2026-04-05 as part of v1 milestone completion*
