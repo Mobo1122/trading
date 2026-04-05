@@ -46,6 +46,15 @@ agents:
   response_tokens_limit: 4000
   checkpoint_conn_string: "postgresql://trading:trading@localhost:5432/trading"
 
+dashboard:
+  host: "0.0.0.0"
+  port: 8000
+  cors_origins:
+    - "http://localhost:3000"
+  ws_ping_interval: 30
+  update_throttle_ms: 500
+  publisher_interval: 5
+
 risk_limits:
   paper:
     position:

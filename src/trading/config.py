@@ -110,6 +110,22 @@ class LoggingConfig(BaseModel):
     format: Literal["json", "console"] = "console"
 
 
+class DashboardConfig(BaseModel):
+    """Dashboard server configuration.
+
+    Controls the FastAPI dashboard server settings including host, port,
+    CORS origins, WebSocket ping interval, update throttling, and the
+    interval at which DashboardPublisher writes to Redis.
+    """
+
+    host: str = "0.0.0.0"
+    port: int = 8000
+    cors_origins: list[str] = ["http://localhost:3000"]
+    ws_ping_interval: int = 30
+    update_throttle_ms: int = 500
+    publisher_interval: int = 5
+
+
 class MarketDataConfig(BaseModel):
     """Market data streaming configuration.
 
@@ -196,6 +212,7 @@ class Settings(BaseSettings):
     logging: LoggingConfig = LoggingConfig()
     market_data: MarketDataConfig = MarketDataConfig()
     agents: AgentConfig = AgentConfig()
+    dashboard: DashboardConfig = DashboardConfig()
     risk_limits: RiskLimitsConfig = RiskLimitsConfig()
 
     model_config = {
