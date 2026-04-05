@@ -120,11 +120,8 @@ class DashboardPublisher:
             status = "idle"
             if self._health_monitor is not None:
                 try:
-                    health = self._health_monitor.current_health
-                    if hasattr(health, "value"):
-                        status = health.value
-                    elif isinstance(health, str):
-                        status = health
+                    health_status = await self._health_monitor.check_health()
+                    status = health_status.overall.value
                 except Exception:
                     pass
 

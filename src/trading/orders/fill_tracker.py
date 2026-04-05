@@ -44,6 +44,15 @@ class FillTracker:
     def __init__(self, session_factory: async_sessionmaker) -> None:
         self._session_factory = session_factory
         self._pending_commissions: dict[str, CommissionReport] = {}
+        self._circuit_breaker = None
+
+    @property
+    def circuit_breaker(self):
+        return self._circuit_breaker
+
+    @circuit_breaker.setter
+    def circuit_breaker(self, value):
+        self._circuit_breaker = value
 
     async def on_fill(
         self, order_id: str, trade: Trade, fill: Fill
@@ -246,6 +255,19 @@ class FillTracker:
                 exec_record.commission = report.commission
                 if report.realizedPNL != float("inf"):
                     exec_record.realized_pnl = report.realizedPNL
+                    # Route realized losses to circuit breaker
+                    if report.realizedPNL < 0 and self._circuit_breaker is not None:
+                        try:
+                            await self._circuit_breaker.record_realized_loss(
+                                abs(report.realizedPNL)
+                            )
+                        except Exception:
+                            logger.warning(
+                                "circuit_breaker_record_failed",
+                                order_id=order_id,
+                                exec_id=exec_id,
+                                exc_info=True,
+                            )
 
                 # Accumulate commission on parent Order
                 order_result = await session.execute(
@@ -376,6 +398,19 @@ class FillTracker:
                     exec_record.commission = report.commission
                     if report.realizedPNL != float("inf"):
                         exec_record.realized_pnl = report.realizedPNL
+                        # Route realized losses to circuit breaker
+                        if report.realizedPNL < 0 and self._circuit_breaker is not None:
+                            try:
+                                await self._circuit_breaker.record_realized_loss(
+                                    abs(report.realizedPNL)
+                                )
+                            except Exception:
+                                logger.warning(
+                                    "circuit_breaker_record_failed",
+                                    order_id=order_id,
+                                    exec_id=exec_id,
+                                    exc_info=True,
+                                )
 
                 # Accumulate commission on parent Order
                 order_result = await session.execute(

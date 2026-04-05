@@ -286,6 +286,7 @@ class TradingApp:
             session_factory=self.session_factory,
         )
         self.execution_service.fill_tracker = self.fill_tracker
+        self.fill_tracker.circuit_breaker = self.circuit_breaker
         self.order_recovery = OrderRecoveryManager(
             ib=self.connection_manager.ib,
             order_tracker=self.order_tracker,
