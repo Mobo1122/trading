@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 8 of 8 (Alerts & Autonomy)
-Plan: 2 of 5 in current phase
+Plan: 3 of 5 in current phase
 Status: In progress
-Last activity: 2026-04-05 -- Completed 08-02-PLAN.md (Approval Manager)
+Last activity: 2026-04-05 -- Completed 08-03-PLAN.md (Pipeline Approval Gate)
 
-Progress: [################### ] 93% (39/42 plans complete)
+Progress: [####################] 95% (40/42 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 39
+- Total plans completed: 40
 - Average duration: 4min
-- Total execution time: 2.58 hours
+- Total execution time: 2.68 hours
 
 **By Phase:**
 
@@ -34,10 +34,10 @@ Progress: [################### ] 93% (39/42 plans complete)
 | 05-core-agent-pipeline | 7/7 | 30min | 4min |
 | 06-advanced-agent-intelligence | 3/3 | 14min | 5min |
 | 07-dashboard-monitoring | 6/6 | 39min | 7min |
-| 08-alerts-autonomy | 2/5 | 6min | 3min |
+| 08-alerts-autonomy | 3/5 | 12min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 07-05 (5min), 07-04 (6min), 07-06 (8min), 08-01 (3min), 08-02 (3min)
+- Last 5 plans: 07-04 (6min), 07-06 (8min), 08-01 (3min), 08-02 (3min), 08-03 (6min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -174,6 +174,9 @@ Recent decisions affecting current work:
 - [08-02]: Redis key TTL = timeout + 3600s for dashboard visibility after expiration
 - [08-02]: scan_iter (not KEYS) for get_pending -- production-safe Redis enumeration
 - [08-02]: Approval lifecycle: Redis hash persistence + asyncio.Future in-process signaling + pub/sub cross-process resolution
+- [08-03]: Closure-based _make_route_after_risk(deps) for three-way routing (needs deps access for threshold checking)
+- [08-03]: All Redis publish calls in pipeline nodes guarded with if deps.redis_client and try/except (non-fatal)
+- [08-03]: Kept module-level route_after_risk for backward compatibility; pipeline factory uses closure version
 
 ### Pending Todos
 
@@ -190,5 +193,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-05
-Stopped at: Completed 08-02-PLAN.md (Approval Manager). Phase 8 in progress (2/5 plans).
+Stopped at: Completed 08-03-PLAN.md (Pipeline Approval Gate). Phase 8 in progress (3/5 plans).
 Resume file: None
