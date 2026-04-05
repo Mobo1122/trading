@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** The agents find and execute profitable options trades autonomously while never violating the user's risk constraints
-**Current focus:** Phase 7 Complete - Dashboard & Monitoring
+**Current focus:** Phase 8 - Alerts & Autonomy
 
 ## Current Position
 
-Phase: 7 of 8 (Dashboard & Monitoring)
-Plan: 6 of 6 in current phase
-Status: Phase complete
-Last activity: 2026-04-05 -- Completed 07-06-PLAN.md (P&L scenario analysis)
+Phase: 8 of 8 (Alerts & Autonomy)
+Plan: 2 of 5 in current phase
+Status: In progress
+Last activity: 2026-04-05 -- Completed 08-02-PLAN.md (Approval Manager)
 
-Progress: [##########] 100% (37/37 plans complete)
+Progress: [################### ] 93% (39/42 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 37
+- Total plans completed: 39
 - Average duration: 4min
-- Total execution time: 2.52 hours
+- Total execution time: 2.58 hours
 
 **By Phase:**
 
@@ -34,9 +34,10 @@ Progress: [##########] 100% (37/37 plans complete)
 | 05-core-agent-pipeline | 7/7 | 30min | 4min |
 | 06-advanced-agent-intelligence | 3/3 | 14min | 5min |
 | 07-dashboard-monitoring | 6/6 | 39min | 7min |
+| 08-alerts-autonomy | 2/5 | 6min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 07-03 (6min), 07-05 (5min), 07-04 (6min), 07-06 (8min)
+- Last 5 plans: 07-05 (5min), 07-04 (6min), 07-06 (8min), 08-01 (3min), 08-02 (3min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -165,6 +166,10 @@ Recent decisions affecting current work:
 - [07-06]: Default IV of 0.25 (25%) when implied volatility unavailable from Redis or position data
 - [07-06]: OCC symbol parsing as fallback for contract detail resolution when Redis cache misses
 - [07-06]: ScenarioPositionResult typed interface instead of unknown[] for per-position results
+- [08-02]: asyncio.wait (not wait_for) with explicit listener_task for clean cancellation on both timeout and cross-process resolution paths
+- [08-02]: Redis key TTL = timeout + 3600s for dashboard visibility after expiration
+- [08-02]: scan_iter (not KEYS) for get_pending -- production-safe Redis enumeration
+- [08-02]: Approval lifecycle: Redis hash persistence + asyncio.Future in-process signaling + pub/sub cross-process resolution
 
 ### Pending Todos
 
@@ -181,5 +186,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-05
-Stopped at: Completed 07-06-PLAN.md (P&L scenario analysis). Phase 7 complete. All 37 plans across 7 phases done.
+Stopped at: Completed 08-02-PLAN.md (Approval Manager). Phase 8 in progress (2/5 plans).
 Resume file: None
