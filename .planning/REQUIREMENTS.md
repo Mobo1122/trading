@@ -56,11 +56,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Alerts & Autonomy
 
-- [ ] **AUTO-01**: System sends Slack/SMS alerts for trade executions, risk events, and system errors
-- [ ] **AUTO-02**: System auto-executes trades below configurable threshold (dollar amount, Greeks impact)
-- [ ] **AUTO-03**: System presents approval workflow for trades above threshold with full context
-- [ ] **AUTO-04**: Approval requests timeout to reject (safe default) if no human response
-- [ ] **AUTO-05**: User can approve/reject trades via Slack interactive buttons
+- [x] **AUTO-01**: System sends Slack/SMS alerts for trade executions, risk events, and system errors
+- [x] **AUTO-02**: System auto-executes trades below configurable threshold (dollar amount, Greeks impact)
+- [x] **AUTO-03**: System presents approval workflow for trades above threshold with full context
+- [x] **AUTO-04**: Approval requests timeout to reject (safe default) if no human response
+- [x] **AUTO-05**: User can approve/reject trades via Slack interactive buttons
 
 ## v2 Requirements
 
@@ -130,11 +130,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DASH-04 | Phase 7 | Pending |
 | DASH-05 | Phase 7 | Pending |
 | DASH-06 | Phase 7 | Pending |
-| AUTO-01 | Phase 8 | Pending |
-| AUTO-02 | Phase 8 | Pending |
-| AUTO-03 | Phase 8 | Pending |
-| AUTO-04 | Phase 8 | Pending |
-| AUTO-05 | Phase 8 | Pending |
+| AUTO-01 | Phase 8 | Complete |
+| AUTO-02 | Phase 8 | Complete |
+| AUTO-03 | Phase 8 | Complete |
+| AUTO-04 | Phase 8 | Complete |
+| AUTO-05 | Phase 8 | Complete |
 
 **Coverage:**
 - v1 requirements: 37 total

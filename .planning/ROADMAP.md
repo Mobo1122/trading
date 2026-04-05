@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Core Agent Pipeline** - Wire scanner, strategist, risk manager, and executor agents into a LangGraph-orchestrated pipeline
 - [x] **Phase 6: Advanced Agent Intelligence** - Add market regime awareness and automated position rolling to the agent pipeline
 - [x] **Phase 7: Dashboard & Monitoring** - Provide full visibility into positions, P&L, Greeks, agent reasoning, and system health via web dashboard
-- [ ] **Phase 8: Alerts & Autonomy** - Enable autonomous small-trade execution, human approval workflows, and real-time alerting
+- [x] **Phase 8: Alerts & Autonomy** - Enable autonomous small-trade execution, human approval workflows, and real-time alerting
 
 ## Phase Details
 
@@ -165,14 +165,14 @@ Plans:
   3. Trades above the threshold present an approval request with full trade context (strategy, Greeks impact, max loss scenario) and a clear approve/reject interface
   4. Approval requests that receive no human response within the timeout period are automatically rejected (safe default)
   5. User can approve or reject escalated trades directly from Slack via interactive buttons without opening the dashboard
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- [ ] 08-01: Alert routing system (Slack webhooks + Twilio SMS) consuming Redis events
-- [ ] 08-02: Auto-execute threshold configuration and routing logic in executor
-- [ ] 08-03: Trade approval workflow with context display and timeout-to-reject
-- [ ] 08-04: Dashboard approval UI for escalated trades
-- [ ] 08-05: Slack interactive buttons for approve/reject
+- [x] 08-01-PLAN.md — AlertConfig, SlackNotifier (webhook), SMSNotifier (Twilio via httpx with cooldown), AlertRouter consuming Redis pub/sub events
+- [x] 08-02-PLAN.md — ApprovalManager with Redis state, asyncio.Future timeout-to-reject, expired recovery, PipelineState extension
+- [x] 08-03-PLAN.md — Pipeline approval gate (threshold routing, background post-approval execution), TradingApp Phase 8 lifecycle wiring
+- [x] 08-04-PLAN.md — Dashboard approval UI (REST endpoints, Next.js page with approval cards, Zustand store, WebSocket updates)
+- [x] 08-05-PLAN.md — Slack interactive buttons via slack-bolt Socket Mode, Block Kit approve/reject buttons, message update on resolution
 
 ## Progress
 
@@ -189,4 +189,4 @@ Note: Phases 6 and 7 can execute in parallel after Phase 5 completes.
 | 5. Core Agent Pipeline | 7/7 | Complete | 2026-04-04 |
 | 6. Advanced Agent Intelligence | 3/3 | Complete | 2026-04-04 |
 | 7. Dashboard & Monitoring | 6/6 | Complete | 2026-04-05 |
-| 8. Alerts & Autonomy | 0/5 | Not started | - |
+| 8. Alerts & Autonomy | 5/5 | Complete | 2026-04-05 |
