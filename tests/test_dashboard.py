@@ -374,3 +374,212 @@ async def test_portfolio_endpoint():
         assert data["total_realized_pnl"] == 1500.0
         # Net liq = market_value + unrealized + realized = 45500 + 500 + 1500
         assert data["net_liquidation"] == 47500.0
+
+
+# ---------------------------------------------------------------------------
+# Scenario engine tests
+# ---------------------------------------------------------------------------
+
+
+class TestBlackScholesPrice:
+    """Tests for Black-Scholes option pricing."""
+
+    def test_atm_call_price_reasonable(self):
+        """ATM call with 3 months to expiry should be in reasonable range."""
+        from trading.dashboard.scenario_engine import black_scholes_price
+
+        price = black_scholes_price(100, 100, 0.25, 0.05, 0.2, "C")
+        # ATM call with 20% vol, 3 months: ~$4-6
+        assert 3.0 < price < 7.0, f"ATM call price {price} out of range"
+
+    def test_atm_put_price_reasonable(self):
+        """ATM put with 3 months to expiry should be in reasonable range."""
+        from trading.dashboard.scenario_engine import black_scholes_price
+
+        price = black_scholes_price(100, 100, 0.25, 0.05, 0.2, "P")
+        assert 2.0 < price < 6.0, f"ATM put price {price} out of range"
+
+    def test_itm_put_at_expiration(self):
+        """ITM put at expiration should return intrinsic value."""
+        from trading.dashboard.scenario_engine import black_scholes_price
+
+        # Put: K=100, S=95 -> intrinsic = 5.0
+        price = black_scholes_price(95, 100, 0, 0.05, 0.3, "P")
+        assert price == 5.0
+
+    def test_call_at_expiration_intrinsic(self):
+        """ITM call at expiration should return intrinsic value."""
+        from trading.dashboard.scenario_engine import black_scholes_price
+
+        price = black_scholes_price(105, 100, 0, 0.05, 0.2, "C")
+        assert price == 5.0
+
+    def test_otm_call_at_expiration_zero(self):
+        """OTM call at expiration should return zero."""
+        from trading.dashboard.scenario_engine import black_scholes_price
+
+        price = black_scholes_price(95, 100, 0, 0.05, 0.2, "C")
+        assert price == 0.0
+
+    def test_otm_put_at_expiration_zero(self):
+        """OTM put at expiration should return zero."""
+        from trading.dashboard.scenario_engine import black_scholes_price
+
+        price = black_scholes_price(105, 100, 0, 0.05, 0.2, "P")
+        assert price == 0.0
+
+    def test_deep_itm_call_approaches_intrinsic(self):
+        """Deep ITM call should approach intrinsic value."""
+        from trading.dashboard.scenario_engine import black_scholes_price
+
+        price = black_scholes_price(150, 100, 0.25, 0.05, 0.2, "C")
+        intrinsic = 50.0
+        assert price >= intrinsic, f"Deep ITM call {price} < intrinsic {intrinsic}"
+
+    def test_zero_vol_returns_intrinsic_discounted(self):
+        """Zero volatility should return discounted intrinsic value."""
+        from trading.dashboard.scenario_engine import black_scholes_price
+
+        price = black_scholes_price(110, 100, 1.0, 0.05, 0.0, "C")
+        # With zero vol, call = max(S - K*exp(-rT), 0)
+        import math
+
+        expected = max(110 - 100 * math.exp(-0.05), 0)
+        assert abs(price - expected) < 0.01
+
+
+class TestScenarioPnl:
+    """Tests for portfolio scenario P&L analysis."""
+
+    def _make_position(self, **overrides):
+        """Helper to create a test position dict."""
+        defaults = {
+            "underlying_price": 100,
+            "strike": 100,
+            "dte": 30,
+            "implied_vol": 0.2,
+            "quantity": 1,
+            "multiplier": 100,
+            "right": "C",
+            "symbol": "SPY",
+        }
+        defaults.update(overrides)
+        return defaults
+
+    def test_call_positive_underlying_move(self):
+        """Long call should profit from positive underlying move."""
+        from trading.dashboard.scenario_engine import scenario_pnl
+
+        result = scenario_pnl(
+            [self._make_position(right="C", quantity=1)],
+            underlying_change_pct=5.0,
+            iv_change_pct=0.0,
+            days_forward=0,
+        )
+        assert result["pnl"] > 0, f"Call +5% should be positive, got {result['pnl']}"
+
+    def test_put_positive_underlying_move(self):
+        """Long put should lose from positive underlying move."""
+        from trading.dashboard.scenario_engine import scenario_pnl
+
+        result = scenario_pnl(
+            [self._make_position(right="P", quantity=1)],
+            underlying_change_pct=5.0,
+            iv_change_pct=0.0,
+            days_forward=0,
+        )
+        assert result["pnl"] < 0, f"Put +5% should be negative, got {result['pnl']}"
+
+    def test_empty_positions_returns_zeros(self):
+        """Empty positions list should return all zeros."""
+        from trading.dashboard.scenario_engine import scenario_pnl
+
+        result = scenario_pnl([], underlying_change_pct=5.0, iv_change_pct=0.0, days_forward=0)
+        assert result["current_value"] == 0.0
+        assert result["scenario_value"] == 0.0
+        assert result["pnl"] == 0.0
+        assert result["pnl_percent"] == 0.0
+        assert result["per_position"] == []
+
+    def test_theta_decay_reduces_long_call_value(self):
+        """Time passage should reduce long call value (theta decay)."""
+        from trading.dashboard.scenario_engine import scenario_pnl
+
+        result = scenario_pnl(
+            [self._make_position(right="C", quantity=1, dte=30)],
+            underlying_change_pct=0.0,
+            iv_change_pct=0.0,
+            days_forward=7,
+        )
+        assert result["pnl"] < 0, f"Theta decay should be negative, got {result['pnl']}"
+
+    def test_iv_increase_benefits_long_call(self):
+        """IV increase should benefit a long call position (vega)."""
+        from trading.dashboard.scenario_engine import scenario_pnl
+
+        result = scenario_pnl(
+            [self._make_position(right="C", quantity=1)],
+            underlying_change_pct=0.0,
+            iv_change_pct=20.0,
+            days_forward=0,
+        )
+        assert result["pnl"] > 0, f"IV increase should be positive for long call, got {result['pnl']}"
+
+    def test_short_call_profits_from_theta(self):
+        """Short call should profit from theta decay."""
+        from trading.dashboard.scenario_engine import scenario_pnl
+
+        result = scenario_pnl(
+            [self._make_position(right="C", quantity=-1, dte=30)],
+            underlying_change_pct=0.0,
+            iv_change_pct=0.0,
+            days_forward=7,
+        )
+        assert result["pnl"] > 0, f"Short call theta should be positive, got {result['pnl']}"
+
+    def test_pnl_percent_calculated(self):
+        """P&L percent should be calculated relative to current value."""
+        from trading.dashboard.scenario_engine import scenario_pnl
+
+        result = scenario_pnl(
+            [self._make_position(right="C", quantity=1)],
+            underlying_change_pct=10.0,
+            iv_change_pct=0.0,
+            days_forward=0,
+        )
+        assert result["pnl_percent"] != 0.0
+        # pnl_percent should equal pnl / abs(current_value) * 100
+        if result["current_value"] != 0:
+            expected_pct = result["pnl"] / abs(result["current_value"]) * 100
+            assert abs(result["pnl_percent"] - round(expected_pct, 2)) < 0.1
+
+    def test_per_position_breakdown(self):
+        """Per-position breakdown should contain entry for each position."""
+        from trading.dashboard.scenario_engine import scenario_pnl
+
+        result = scenario_pnl(
+            [
+                self._make_position(right="C", symbol="SPY"),
+                self._make_position(right="P", symbol="AAPL", strike=150, underlying_price=155),
+            ],
+            underlying_change_pct=5.0,
+            iv_change_pct=0.0,
+            days_forward=0,
+        )
+        assert len(result["per_position"]) == 2
+        symbols = [p["symbol"] for p in result["per_position"]]
+        assert "SPY" in symbols
+        assert "AAPL" in symbols
+
+    def test_invalid_position_skipped(self):
+        """Position with missing fields should be skipped."""
+        from trading.dashboard.scenario_engine import scenario_pnl
+
+        result = scenario_pnl(
+            [{"symbol": "BAD", "quantity": 1}],
+            underlying_change_pct=0.0,
+            iv_change_pct=0.0,
+            days_forward=0,
+        )
+        assert len(result["skipped"]) == 1
+        assert result["skipped"][0]["symbol"] == "BAD"

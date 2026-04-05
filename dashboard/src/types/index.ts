@@ -64,12 +64,27 @@ export interface ScenarioRequest {
   riskFreeRate: number;
 }
 
+export interface ScenarioPositionResult {
+  symbol?: string;
+  right?: string;
+  strike?: number;
+  dte?: number;
+  quantity?: number;
+  currentPrice?: number;
+  scenarioPrice?: number;
+  currentValue?: number;
+  scenarioValue?: number;
+  pnl?: number;
+  status?: string;
+  reason?: string;
+}
+
 export interface ScenarioResponse {
   currentValue: number;
   scenarioValue: number;
   pnl: number;
   pnlPercent: number;
-  perPosition: unknown[];
+  perPosition: ScenarioPositionResult[];
 }
 
 export interface WSMessage {
