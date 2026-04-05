@@ -70,14 +70,14 @@ export async function getGreeks(): Promise<Greeks> {
 export async function getTradeHistory(
   limit = 50,
   offset = 0
-): Promise<TradeHistoryItem[]> {
-  return fetchApi<TradeHistoryItem[]>(
-    `/api/trades?limit=${limit}&offset=${offset}`
+): Promise<{ trades: TradeHistoryItem[]; total: number }> {
+  return fetchApi<{ trades: TradeHistoryItem[]; total: number }>(
+    `/api/trades/history?limit=${limit}&offset=${offset}`
   );
 }
 
 export async function getHealth(): Promise<HealthStatus> {
-  return fetchApi<HealthStatus>("/api/health");
+  return fetchApi<HealthStatus>("/api/health/status");
 }
 
 export async function runScenario(
