@@ -5,6 +5,7 @@ description = "Autonomous options trading system with IB Gateway connectivity"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "aiohttp>=3.9.0",
     "alembic>=1.18.4",
     "asyncpg>=0.31.0",
     "fastapi[standard]>=0.135.0",
