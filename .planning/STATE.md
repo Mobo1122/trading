@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 7 of 8 (Dashboard & Monitoring)
-Plan: 1 of 4 in current phase
+Plan: 2 of 4 in current phase
 Status: In progress
-Last activity: 2026-04-05 -- Completed 07-01-PLAN.md (Dashboard server foundation)
+Last activity: 2026-04-05 -- Completed 07-02-PLAN.md (Dashboard frontend shell)
 
-Progress: [########=-] 76% (32/42 plans complete)
+Progress: [########=-] 79% (33/42 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 32
+- Total plans completed: 33
 - Average duration: 4min
-- Total execution time: 1.98 hours
+- Total execution time: 2.11 hours
 
 **By Phase:**
 
@@ -33,10 +33,10 @@ Progress: [########=-] 76% (32/42 plans complete)
 | 04-order-execution | 4/4 | 15min | 4min |
 | 05-core-agent-pipeline | 7/7 | 30min | 4min |
 | 06-advanced-agent-intelligence | 3/3 | 14min | 5min |
-| 07-dashboard-monitoring | 1/4 | 6min | 6min |
+| 07-dashboard-monitoring | 2/4 | 14min | 7min |
 
 **Recent Trend:**
-- Last 5 plans: 06-01 (3min), 06-02 (3min), 06-03 (8min), 07-01 (6min)
+- Last 5 plans: 06-02 (3min), 06-03 (8min), 07-01 (6min), 07-02 (8min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -147,6 +147,10 @@ Recent decisions affecting current work:
 - [07-01]: Portfolio Greeks aggregated by summing across all mktdata:latest:greeks:* keys with rounding to 10dp
 - [07-01]: Dashboard publisher non-critical in TradingApp (try/except with warning, matching Phase 2-6 bootstrap pattern)
 - [07-01]: get_db_session as FastAPI Depends generator (same commit/rollback pattern as trading.db.session.get_session)
+- [07-02]: Skipped shadcn chart component (depends on recharts, deferred to later plan)
+- [07-02]: Root page redirects to /positions instead of rendering dashboard home
+- [07-02]: WebSocket client uses class singleton pattern, not React context
+- [07-02]: Server/Client boundary: root layout is Server Component, interactivity in child client components
 
 ### Pending Todos
 
@@ -163,5 +167,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-05
-Stopped at: Completed 07-01-PLAN.md (Dashboard server foundation). Phase 7 in progress.
+Stopped at: Completed 07-02-PLAN.md (Dashboard frontend shell). Phase 7 in progress.
 Resume file: None
