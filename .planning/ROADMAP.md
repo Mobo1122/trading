@@ -21,6 +21,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: Dashboard & Monitoring** - Provide full visibility into positions, P&L, Greeks, agent reasoning, and system health via web dashboard
 - [x] **Phase 8: Alerts & Autonomy** - Enable autonomous small-trade execution, human approval workflows, and real-time alerting
 - [x] **Phase 9: Integration Fixes & Tech Debt** - Fix cross-phase wiring gaps (Redis namespace, circuit breaker, health monitor) and resolve tech debt from milestone audit
+- [ ] **Phase 10: Position Rolling Pipeline & Alert Polish** - Wire rolling pipeline consumption so expiring positions are automatically rolled, and add structured Slack formatting for trade rejections
 
 ## Phase Details
 
@@ -192,10 +193,25 @@ Plans:
 - [x] 09-01-PLAN.md — Fix Redis namespace mismatch in scanner, strategist, and regime detector; wire FillTracker → CircuitBreaker for loss accumulation; fix HealthMonitor.current_health property
 - [x] 09-02-PLAN.md — Dashboard realized P&L writer, regime detector timing fix, missing commission test, documentation cleanup
 
+### Phase 10: Position Rolling Pipeline & Alert Polish
+**Goal**: Expiring positions are automatically rolled via the agent pipeline, and trade rejection alerts use structured Slack formatting instead of plain text
+**Depends on**: Phase 9 (all prior phases complete)
+**Requirements**: AGENT-08
+**Gap Closure**: Closes all remaining gaps from v1-MILESTONE-AUDIT.md
+**Success Criteria** (what must be TRUE):
+  1. Pipeline reads rolling_candidates from PipelineState and routes expiring positions through the strategist for roll construction
+  2. ExpirationMonitor.evaluate_rolling() and build_roll_proposals() are called during pipeline execution (no longer dead code)
+  3. End-to-end flow works: expiring position → ExpirationMonitor → rolling_candidates → pipeline node → strategist → risk → executor
+  4. SlackNotifier formats trade_rejected events with structured Block Kit messages (not plain text fallback)
+**Plans**: TBD
+
+Plans:
+- [ ] 10-01-PLAN.md — Rolling pipeline node, ExpirationMonitor activation, and Slack trade_rejected handler
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 Note: Phases 6 and 7 can execute in parallel after Phase 5 completes.
 
 | Phase | Plans Complete | Status | Completed |
@@ -209,3 +225,4 @@ Note: Phases 6 and 7 can execute in parallel after Phase 5 completes.
 | 7. Dashboard & Monitoring | 6/6 | Complete | 2026-04-05 |
 | 8. Alerts & Autonomy | 5/5 | Complete | 2026-04-05 |
 | 9. Integration Fixes & Tech Debt | 2/2 | Complete | 2026-04-05 |
+| 10. Position Rolling Pipeline & Alert Polish | 0/1 | Not Started | — |
