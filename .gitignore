@@ -37,3 +37,8 @@ Thumbs.db
 
 # uv
 .python-version
+
+# Dashboard (Next.js)
+dashboard/node_modules/
+dashboard/.next/
+dashboard/.env.local
