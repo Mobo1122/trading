@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** The agents find and execute profitable options trades autonomously while never violating the user's risk constraints
-**Current focus:** Phase 8 - Alerts & Autonomy (COMPLETE)
+**Current focus:** Phase 9 - Integration Fixes & Tech Debt (COMPLETE)
 
 ## Current Position
 
-Phase: 8 of 8 (Alerts & Autonomy)
-Plan: 5 of 5 in current phase
+Phase: 9 of 9 (Integration Fixes & Tech Debt)
+Plan: 2 of 2 in current phase
 Status: Phase complete
-Last activity: 2026-04-05 -- Completed 08-05-PLAN.md (Slack Interactive Buttons)
+Last activity: 2026-04-05 -- Completed 09-02-PLAN.md (Tech Debt Closure)
 
-Progress: [####################] 100% (42/42 plans complete)
+Progress: [####################] 100% (44/44 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 42
+- Total plans completed: 44
 - Average duration: 4min
-- Total execution time: 2.88 hours
+- Total execution time: ~3 hours
 
 **By Phase:**
 
@@ -35,10 +35,7 @@ Progress: [####################] 100% (42/42 plans complete)
 | 06-advanced-agent-intelligence | 3/3 | 14min | 5min |
 | 07-dashboard-monitoring | 6/6 | 39min | 7min |
 | 08-alerts-autonomy | 5/5 | 24min | 5min |
-
-**Recent Trend:**
-- Last 5 plans: 08-01 (3min), 08-02 (3min), 08-03 (6min), 08-04 (6min), 08-05 (6min)
-- Trend: consistent
+| 09-integration-fixes-tech-debt | 2/2 | 10min | 5min |
 
 *Updated after each plan completion*
 
@@ -116,7 +113,7 @@ Recent decisions affecting current work:
 - [05-01]: agent_decision_log is regular table (not hypertable) -- low-frequency audit events
 - [05-02]: Per-symbol tool calls (not batch) let the LLM decide which symbols to query
 - [05-02]: UsageLimits defaults from AgentConfig, not hardcoded (single source of truth)
-- [05-02]: Redis lookup uses HGETALL on market_data:{symbol} matching Phase 2 dual-write pattern
+- [05-02]: Redis lookup uses HGETALL on mktdata:latest:quote:{symbol} matching Phase 2 dual-write pattern
 - [05-03]: Strategist request_limit defaults to 15 (vs scanner's 10) because more tool calls per opportunity
 - [05-03]: Option chain tool returns full strikes/expirations without truncation for accurate strike selection
 - [05-04]: Symbol-based Greeks matching via Redis SCAN (not con_id) as known simplification for portfolio exposure
@@ -183,6 +180,10 @@ Recent decisions affecting current work:
 - [08-04]: ApprovalContext parsing with try/except fallback to raw dict for graceful handling of incomplete context
 - [08-05]: Approval request messages sent via chat.postMessage (bot token) not webhook, because webhooks cannot send interactive action_id buttons
 - [08-05]: Action handlers as closures inside create_slack_bot() capturing approval_manager -- clean dependency injection without global state
+- [09-01]: Circuit breaker loss recording uses same property-setter injection pattern as execution_service.fill_tracker (decision [04-04])
+- [09-01]: Loss recording is non-fatal (try/except with warning) matching project convention for non-critical operations
+- [09-02]: Local imports in _publish_realized_pnl to avoid circular imports (matching existing fill_tracker pattern)
+- [09-02]: Phase 7 research doc route references were already correct — no changes needed
 
 ### Pending Todos
 
@@ -199,5 +200,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-04-05
-Stopped at: Completed 08-05-PLAN.md (Slack Interactive Buttons). All 8 phases complete (42/42 plans).
+Stopped at: Completed 09-02-PLAN.md (Tech Debt Closure). All 9 phases complete (44/44 plans).
 Resume file: None
