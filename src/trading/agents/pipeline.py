@@ -595,6 +595,8 @@ async def run_pipeline(
         "regime_classification": regime_classification or {},
         "rolling_candidates": rolling_candidates or [],
         "rolling_decisions": [],
+        "approval_status": "",
+        "approval_id": "",
     }
 
     config = {"configurable": {"thread_id": run_id}}

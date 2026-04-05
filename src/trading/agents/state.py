@@ -35,6 +35,10 @@ class PipelineState(TypedDict):
             rolling pipeline runs for downstream agents.
         rolling_decisions: Serialized decision dicts accumulated across
             rolling pipeline runs for downstream agents.
+        approval_status: Approval gate status -- empty string (no approval
+            needed), ``"pending_approval"``, ``"approved"``, ``"rejected"``,
+            or ``"timed_out"``.
+        approval_id: The approval request ID (empty if not applicable).
     """
 
     watchlist: list[str]
@@ -51,3 +55,5 @@ class PipelineState(TypedDict):
     regime_classification: dict
     rolling_candidates: list[dict]
     rolling_decisions: list[dict]
+    approval_status: str
+    approval_id: str
