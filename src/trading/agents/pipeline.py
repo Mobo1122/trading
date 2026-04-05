@@ -1,14 +1,18 @@
 """LangGraph StateGraph pipeline orchestrating trading agents.
 
-Connects regime_detector -> scanner -> strategist -> risk_manager ->
-executor in a StateGraph with conditional routing:
-  - After scanner: short-circuits to END if no opportunities found.
+Connects regime_detector -> rolling_node -> scanner -> strategist ->
+risk_manager -> executor in a StateGraph with conditional routing:
+  - After scanner: short-circuits to END if no opportunities and no
+    rolling decisions found.
   - After risk_manager: routes to executor (below threshold),
     approval_gate (above threshold), or END (nothing approved).
 
 The regime_detector node runs first to classify market conditions and
-inject regime context into scanner prompts. Rolling candidates from
-ExpirationMonitor are passed in via ``run_pipeline()`` by the caller.
+inject regime context into scanner prompts. The rolling_node evaluates
+expiring positions deterministically via ExpirationMonitor and stores
+converted proposals in ``rolling_decisions`` for the risk gate. Rolling
+candidates from ExpirationMonitor are passed in via ``run_pipeline()``
+by the caller.
 
 Each node function wraps its PydanticAI agent run, translates between
 PipelineState (TypedDict with ``list[dict]``) and the agent's typed
@@ -210,6 +214,103 @@ async def _regime_node(state: PipelineState, deps: PipelineDeps) -> dict:
         return {"regime_classification": {}}
 
 
+async def _rolling_node(state: PipelineState, deps: PipelineDeps) -> dict:
+    """Evaluate rolling candidates and produce deterministic rolling decisions.
+
+    Reads ``state["rolling_candidates"]`` (serialized RollingCandidate dicts
+    injected by ``app.run_agent_pipeline()``), deserializes them, calls
+    ``ExpirationMonitor.evaluate_rolling()`` and ``build_roll_proposals()``,
+    then converts proposals to StrategyProposal-compatible dicts and stores
+    them in ``rolling_decisions`` for downstream risk evaluation.
+
+    Non-fatal: returns empty rolling_decisions on error or when
+    ExpirationMonitor is unavailable.
+    """
+    run_id = state.get("run_id", "")
+    candidates_raw = state.get("rolling_candidates", [])
+
+    if not candidates_raw or deps.expiration_monitor is None:
+        return {"rolling_decisions": []}
+
+    t0 = time.monotonic()
+
+    try:
+        from trading.agents.rolling import RollingCandidate
+
+        # Deserialize from pipeline state dicts back to typed models
+        candidates = [RollingCandidate(**d) for d in candidates_raw]
+
+        # Deterministic evaluation (no LLM) -- per decision [06-02]
+        decisions = deps.expiration_monitor.evaluate_rolling(candidates)
+
+        # Build close/open proposal pairs
+        raw_proposals = deps.expiration_monitor.build_roll_proposals(decisions)
+
+        # Convert roll proposals to StrategyProposal-compatible dicts
+        # so they can pass through the existing risk gate and executor
+        converted_proposals: list[dict] = []
+        for rp in raw_proposals:
+            proposal_id = f"roll-{rp.get('con_id', 'unknown')}-{run_id[:8]}"
+            converted = {
+                "proposal_id": proposal_id,
+                "symbol": rp["symbol"],
+                "strategy_type": rp["strategy_type"],  # "roll_close" or "roll_open"
+                "legs": [
+                    {
+                        "symbol": rp["symbol"],
+                        "right": rp["right"],
+                        "strike": rp["strike"],
+                        "expiry": rp["expiry"],
+                        "action": rp["action"],
+                        "quantity": int(rp["quantity"]),
+                    }
+                ],
+                "max_loss": abs(rp.get("quantity", 1)) * rp.get("strike", 0) * 100 * 0.05,  # Conservative 5% of notional
+                "max_profit": abs(rp.get("quantity", 1)) * rp.get("strike", 0) * 100 * 0.02,  # Conservative 2% of notional
+                "probability_of_profit": 0.5,  # Neutral estimate for rolling trades
+                "reasoning": rp.get("reasoning", "Automatic position roll"),
+            }
+            converted_proposals.append(converted)
+
+        duration_ms = int((time.monotonic() - t0) * 1000)
+
+        await log_agent_decision(
+            session_factory=deps.session_factory,
+            run_id=run_id,
+            agent_name="rolling_monitor",
+            output={"decisions": [d.model_dump() for d in decisions], "proposals": converted_proposals},
+            duration_ms=duration_ms,
+            input_summary=f"{len(candidates)} rolling candidates",
+        )
+
+        log.info(
+            "pipeline.rolling_node.complete",
+            num_candidates=len(candidates),
+            num_decisions=len(decisions),
+            roll_count=sum(1 for d in decisions if d.action == "roll"),
+            close_count=sum(1 for d in decisions if d.action == "close"),
+            hold_count=sum(1 for d in decisions if d.action == "hold"),
+            num_proposals=len(converted_proposals),
+        )
+
+        return {
+            "rolling_decisions": converted_proposals,
+        }
+
+    except Exception as exc:
+        duration_ms = int((time.monotonic() - t0) * 1000)
+        log.error("pipeline.rolling_node.error", error=str(exc), exc_info=True)
+        await log_agent_decision(
+            session_factory=deps.session_factory,
+            run_id=run_id,
+            agent_name="rolling_monitor",
+            error=str(exc),
+            duration_ms=duration_ms,
+            input_summary=f"{len(candidates_raw)} rolling candidates",
+        )
+        return {"rolling_decisions": []}
+
+
 async def _scan_node(state: PipelineState, deps: PipelineDeps) -> dict:
     """Run the scanner agent and return opportunities.
 
@@ -382,7 +483,12 @@ async def _risk_node(state: PipelineState, deps: PipelineDeps) -> dict:
     rejected for risk violations.
     """
     run_id = state.get("run_id", "")
-    input_summary = f"{len(state['trade_proposals'])} trade proposals from strategist"
+
+    # Merge rolling proposals into trade_proposals for risk evaluation
+    rolling_proposals = state.get("rolling_decisions", [])
+    merged_proposals = list(state["trade_proposals"]) + rolling_proposals
+
+    input_summary = f"{len(state['trade_proposals'])} trade proposals + {len(rolling_proposals)} rolling proposals"
     t0 = time.monotonic()
 
     try:
@@ -390,7 +496,7 @@ async def _risk_node(state: PipelineState, deps: PipelineDeps) -> dict:
             risk_manager=deps.risk_manager,
             redis_client=deps.redis_client,
             session_factory=deps.session_factory,
-            trade_proposals=state["trade_proposals"],
+            trade_proposals=merged_proposals,
             settings=deps.settings,
         )
 
@@ -719,14 +825,16 @@ async def _await_approval_and_execute(
 
 
 def route_after_scan(state: PipelineState) -> str:
-    """Route to strategist if opportunities found, else END.
+    """Route to strategist if opportunities or rolling decisions exist, else END.
 
-    Short-circuits the entire pipeline when the scanner finds nothing
-    worth trading -- no reason to burn tokens on downstream agents.
+    Short-circuits the entire pipeline when neither the scanner nor the
+    rolling node produced actionable work. On pure-rolling runs (no scanner
+    opportunities but rolling_decisions present), continues to strategist
+    so rolling proposals reach the risk gate and executor.
     """
-    if state.get("opportunities"):
+    if state.get("opportunities") or state.get("rolling_decisions"):
         return "strategist"
-    log.info("pipeline.route.scan_empty", reason="no opportunities found")
+    log.info("pipeline.route.scan_empty", reason="no opportunities and no rolling decisions")
     return END
 
 
@@ -808,23 +916,23 @@ async def create_pipeline(
 ) -> CompiledStateGraph:
     """Build and compile the LangGraph StateGraph pipeline.
 
-    The graph has 5-6 nodes (regime_detector, scanner, strategist,
-    risk_manager, executor, and optionally approval_gate) connected
-    by edges with conditional routing that allows early termination
-    and human approval gating for above-threshold trades.
+    The graph has 6-7 nodes (regime_detector, rolling_node, scanner,
+    strategist, risk_manager, executor, and optionally approval_gate)
+    connected by edges with conditional routing that allows early
+    termination and human approval gating for above-threshold trades.
 
     Graph topology::
 
-        START -> regime_detector -> scanner -> [conditional] -> strategist
-                                      |                             |
-                                      +-> END (no opps)      risk_manager
-                                                                    |
-                                                            [conditional]
-                                                           /      |       \\
-                                                  executor   approval_gate  END
-                                                      |          |
-                                                     END        END
-                                                          (bg task handles)
+        START -> regime_detector -> rolling_node -> scanner -> [conditional] -> strategist
+                                                      |                             |
+                                                      +-> END (no opps)      risk_manager
+                                                                                    |
+                                                                            [conditional]
+                                                                           /      |       \\
+                                                                  executor   approval_gate  END
+                                                                      |          |
+                                                                     END        END
+                                                                          (bg task handles)
 
     Args:
         deps: Pipeline dependencies bound to node closures.
@@ -838,6 +946,7 @@ async def create_pipeline(
 
     # Add nodes -- bind deps via closure so each node receives them
     workflow.add_node("regime_detector", lambda state: _regime_node(state, deps))
+    workflow.add_node("rolling_node", lambda state: _rolling_node(state, deps))
     workflow.add_node("scanner", lambda state: _scan_node(state, deps))
     workflow.add_node("strategist", lambda state: _strategist_node(state, deps))
     workflow.add_node("risk_manager", lambda state: _risk_node(state, deps))
@@ -846,9 +955,10 @@ async def create_pipeline(
         "approval_gate", lambda state: _approval_gate_node(state, deps)
     )
 
-    # Edges: START -> regime_detector -> scanner
+    # Edges: START -> regime_detector -> rolling_node -> scanner
     workflow.add_edge(START, "regime_detector")
-    workflow.add_edge("regime_detector", "scanner")
+    workflow.add_edge("regime_detector", "rolling_node")
+    workflow.add_edge("rolling_node", "scanner")
 
     # Conditional: scanner -> strategist or END
     workflow.add_conditional_edges("scanner", route_after_scan)
@@ -873,6 +983,7 @@ async def create_pipeline(
         "pipeline.created",
         nodes=[
             "regime_detector",
+            "rolling_node",
             "scanner",
             "strategist",
             "risk_manager",
