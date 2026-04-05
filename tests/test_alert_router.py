@@ -417,10 +417,15 @@ class TestSlackBlocks:
                 "approval_id": "abc-123",
             },
         )
-        assert len(blocks) == 2
+        assert len(blocks) == 4  # header + 2 sections + actions
         assert blocks[0]["text"]["text"] == "Trade Approval Required"
         assert blocks[1]["type"] == "section"
         assert len(blocks[1]["fields"]) == 4
+        # Actions block with approve/reject buttons
+        assert blocks[3]["type"] == "actions"
+        action_ids = [e["action_id"] for e in blocks[3]["elements"]]
+        assert "approve_trade" in action_ids
+        assert "reject_trade" in action_ids
 
     def test_approval_resolved_blocks(self) -> None:
         """Approval resolved produces header + section."""

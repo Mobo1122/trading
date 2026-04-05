@@ -4,6 +4,11 @@ Sends formatted alert messages to Slack using AsyncWebhookClient.
 Messages are formatted with Block Kit blocks for rich display based
 on the alert channel type (trade events, risk breaches, system errors).
 
+For approval request messages, interactive buttons (approve/reject)
+are sent via ``chat.postMessage`` using the bot token instead of the
+webhook, because incoming webhooks do not support interactive
+``action_id`` buttons. Other channels continue using the webhook.
+
 All Slack operations are non-fatal: errors are logged as warnings
 but never raised, following the established project convention.
 """
@@ -13,6 +18,7 @@ from __future__ import annotations
 import json
 
 import structlog
+from slack_sdk.web.async_client import AsyncWebClient
 from slack_sdk.webhook.async_client import AsyncWebhookClient
 
 logger = structlog.get_logger().bind(component="slack_notifier")
@@ -24,19 +30,35 @@ class SlackNotifier:
     Builds Block Kit blocks based on channel type for rich message
     formatting. Falls back to plain text for unknown channel types.
 
+    For approval request messages with interactive buttons, uses
+    ``chat.postMessage`` via the bot token (``AsyncWebClient``).
+    All other messages use the incoming webhook.
+
     Args:
         webhook_url: Slack incoming webhook URL.
+        bot_token: Optional Slack bot token (xoxb-*) for interactive messages.
+        channel: Slack channel for chat.postMessage (e.g. "#trading-alerts").
     """
 
-    def __init__(self, webhook_url: str) -> None:
+    def __init__(
+        self,
+        webhook_url: str,
+        bot_token: str | None = None,
+        channel: str = "",
+    ) -> None:
         self._client = AsyncWebhookClient(url=webhook_url)
+        self._web_client: AsyncWebClient | None = None
+        self._channel = channel
+        if bot_token:
+            self._web_client = AsyncWebClient(token=bot_token)
 
     async def send(self, channel: str, data: dict) -> None:
         """Send a formatted alert message to Slack.
 
         Builds Block Kit blocks appropriate for the channel type and
-        sends via the webhook client. Errors are caught and logged
-        as warnings (non-fatal).
+        sends via the appropriate client. Approval request messages
+        with interactive buttons use ``chat.postMessage`` (bot token)
+        when available; all other messages use the incoming webhook.
 
         Args:
             channel: Redis pub/sub channel name (e.g. "alerts:trade_executed").
@@ -46,14 +68,26 @@ class SlackNotifier:
         blocks = self._build_blocks(channel, data)
 
         try:
-            response = await self._client.send(text=text, blocks=blocks)
-            if response.status_code != 200:
-                logger.warning(
-                    "slack.send_failed",
-                    channel=channel,
-                    status_code=response.status_code,
-                    body=response.body,
+            # Approval requests with interactive buttons need chat.postMessage
+            if (
+                channel == "alerts:approval_request"
+                and self._web_client is not None
+                and self._channel
+            ):
+                await self._web_client.chat_postMessage(
+                    channel=self._channel,
+                    blocks=blocks,
+                    text=text,
                 )
+            else:
+                response = await self._client.send(text=text, blocks=blocks)
+                if response.status_code != 200:
+                    logger.warning(
+                        "slack.send_failed",
+                        channel=channel,
+                        status_code=response.status_code,
+                        body=response.body,
+                    )
         except Exception as exc:
             logger.warning(
                 "slack.send_error",
@@ -228,12 +262,24 @@ class SlackNotifier:
         ]
 
     def _blocks_approval_request(self, data: dict) -> list[dict]:
-        """Build blocks for an approval request alert."""
+        """Build blocks for an approval request with interactive buttons.
+
+        Includes trade context fields and approve/reject buttons with
+        ``action_id`` values that the Slack bot Socket Mode handler
+        listens for.
+        """
         symbol = data.get("symbol", "?")
         strategy = data.get("strategy", "?")
         max_loss = data.get("max_loss", "?")
+        max_profit = data.get("max_profit", "?")
+        delta = data.get("delta", 0)
+        theta = data.get("theta", 0)
+        vega = data.get("vega", 0)
+        timeout_minutes = data.get("timeout_minutes", "5")
         approval_id = data.get("approval_id", "?")
-        return [
+        requested_at = data.get("requested_at", "")
+
+        blocks: list[dict] = [
             {
                 "type": "header",
                 "text": {
@@ -247,10 +293,59 @@ class SlackNotifier:
                     {"type": "mrkdwn", "text": f"*Symbol:* {symbol}"},
                     {"type": "mrkdwn", "text": f"*Strategy:* {strategy}"},
                     {"type": "mrkdwn", "text": f"*Max Loss:* ${max_loss}"},
-                    {"type": "mrkdwn", "text": f"*Approval ID:* {approval_id}"},
+                    {"type": "mrkdwn", "text": f"*Max Profit:* ${max_profit}"},
+                ],
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {"type": "mrkdwn", "text": f"*Delta Impact:* {delta}"},
+                    {"type": "mrkdwn", "text": f"*Theta Impact:* {theta}"},
+                    {"type": "mrkdwn", "text": f"*Vega Impact:* {vega}"},
+                    {"type": "mrkdwn", "text": f"*Timeout:* {timeout_minutes}m"},
+                ],
+            },
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Approve",
+                        },
+                        "style": "primary",
+                        "action_id": "approve_trade",
+                        "value": str(approval_id),
+                    },
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Reject",
+                        },
+                        "style": "danger",
+                        "action_id": "reject_trade",
+                        "value": str(approval_id),
+                    },
                 ],
             },
         ]
+
+        if requested_at:
+            blocks.append(
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"Requested at {requested_at}",
+                        },
+                    ],
+                }
+            )
+
+        return blocks
 
     def _blocks_approval_resolved(self, data: dict) -> list[dict]:
         """Build blocks for an approval resolution alert."""
