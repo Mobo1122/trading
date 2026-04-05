@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from trading.cache.redis import close_redis_client, create_redis_client
 from trading.config import Settings
+from trading.dashboard.routes.positions import router as positions_router
 from trading.dashboard.ws.bridge import RedisBridge
 from trading.dashboard.ws.manager import ChannelManager
 from trading.db.engine import create_db_engine, create_session_factory
@@ -110,6 +111,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Include REST route modules
+    app.include_router(positions_router)
 
     @app.websocket("/ws")
     async def websocket_endpoint(ws: WebSocket):
