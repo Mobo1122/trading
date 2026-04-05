@@ -2,10 +2,11 @@
 
 Provides the TradingApp class and main() function for starting the system.
 Configures structured logging, displays a startup banner, and wires all
-Phase 1-7 components: IB connection, database, Redis, order tracking,
+Phase 1-8 components: IB connection, database, Redis, order tracking,
 health monitoring, kill switch, market data streaming, IV analytics,
 earnings calendar, risk engine, order execution pipeline, agent pipeline,
-regime detection, option position rolling, and dashboard publisher.
+regime detection, option position rolling, dashboard publisher, alert
+routing, and approval management.
 """
 
 from __future__ import annotations
@@ -39,6 +40,10 @@ from trading.orders.execution_service import OrderExecutionService
 from trading.orders.fill_tracker import FillTracker
 from trading.orders.recovery import OrderRecoveryManager
 from trading.orders.tracker import OrderTracker
+from trading.alerts.approval import ApprovalManager
+from trading.alerts.router import AlertRouter
+from trading.alerts.slack import SlackNotifier
+from trading.alerts.sms import SMSNotifier
 from trading.risk.circuit_breaker import CircuitBreaker
 from trading.risk.manager import RiskManager
 from trading.risk.repository import RiskRepository
@@ -94,7 +99,7 @@ def _mask_password(url: str) -> str:
 class TradingApp:
     """Main trading application lifecycle manager.
 
-    Wires all Phase 1-7 components together and manages their lifecycle:
+    Wires all Phase 1-8 components together and manages their lifecycle:
       - IB connection manager (with auto-reconnect)
       - Database engine and session factory
       - Redis client
@@ -111,6 +116,7 @@ class TradingApp:
       - Regime detector (market condition classification)
       - Expiration monitor (option position rolling logic)
       - Dashboard publisher (writes state to Redis for dashboard server)
+      - Alert router, Slack/SMS notifiers, and approval manager (alerts & autonomy)
     """
 
     def __init__(self, settings: Settings) -> None:
@@ -142,6 +148,12 @@ class TradingApp:
         self.expiration_monitor: ExpirationMonitor | None = None
         # Phase 7: Dashboard publisher
         self.dashboard_publisher: DashboardPublisher | None = None
+        # Phase 8: Alerts and autonomy
+        self.alert_router: AlertRouter | None = None
+        self.slack_notifier: SlackNotifier | None = None
+        self.sms_notifier: SMSNotifier | None = None
+        self.approval_manager: ApprovalManager | None = None
+        self._alert_router_task: asyncio.Task | None = None
 
     async def startup(self) -> None:
         """Start the trading application.
@@ -315,6 +327,52 @@ class TradingApp:
             except Exception:
                 self.log.warning("regime_detector.create_failed", exc_info=True)
 
+        # Phase 8: Alert routing and approval management
+        if (
+            self.settings.alerts.slack_enabled
+            and self.settings.alerts.slack_webhook_url
+        ):
+            self.slack_notifier = SlackNotifier(
+                webhook_url=self.settings.alerts.slack_webhook_url,
+            )
+
+        if (
+            self.settings.alerts.sms_enabled
+            and self.settings.alerts.twilio_account_sid
+            and self.settings.alerts.twilio_auth_token
+            and self.settings.alerts.twilio_from_number
+            and self.settings.alerts.twilio_to_number
+        ):
+            self.sms_notifier = SMSNotifier(
+                account_sid=self.settings.alerts.twilio_account_sid,
+                auth_token=self.settings.alerts.twilio_auth_token,
+                from_number=self.settings.alerts.twilio_from_number,
+                to_number=self.settings.alerts.twilio_to_number,
+                cooldown_seconds=self.settings.alerts.sms_cooldown_seconds,
+            )
+
+        self.alert_router = AlertRouter(
+            redis=self.redis_client,
+            slack_notifier=self.slack_notifier,
+            sms_notifier=self.sms_notifier,
+            config=self.settings.alerts,
+        )
+
+        auto_thresholds = (
+            self.settings.auto_execute.paper
+            if self.settings.trading.mode == "paper"
+            else self.settings.auto_execute.live
+        )
+        self.approval_manager = ApprovalManager(
+            redis=self.redis_client,
+            timeout_seconds=auto_thresholds.approval_timeout_seconds,
+        )
+
+        # Wire Phase 8 components into pipeline deps
+        if self.pipeline_deps is not None:
+            self.pipeline_deps.approval_manager = self.approval_manager
+            self.pipeline_deps.auto_execute_thresholds = auto_thresholds
+
         self.log.info("startup.complete")
 
     async def connect_ib(self) -> None:
@@ -396,6 +454,29 @@ class TradingApp:
                 self.log.info("dashboard_publisher.started")
             except Exception:
                 self.log.warning("dashboard_publisher.start_failed", exc_info=True)
+
+        # Phase 8: Start alert router as background task (non-critical)
+        if self.alert_router is not None:
+            try:
+                self._alert_router_task = asyncio.create_task(
+                    self.alert_router.listen()
+                )
+                self.log.info("alert_router.started")
+            except Exception:
+                self.log.warning("alert_router.start_failed", exc_info=True)
+
+        # Phase 8: Recover expired approvals from previous process (non-critical)
+        if self.approval_manager is not None:
+            try:
+                count = await self.approval_manager.recover_expired()
+                if count > 0:
+                    self.log.info(
+                        "approval_manager.recovered_expired", count=count
+                    )
+            except Exception:
+                self.log.warning(
+                    "approval_manager.recover_failed", exc_info=True
+                )
 
         # Phase 5: Compile agent pipeline with checkpoint persistence (non-critical)
         if self.pipeline_deps is not None:
@@ -481,6 +562,19 @@ class TradingApp:
         to ensure all cleanup runs even if individual steps fail.
         """
         self.log.info("shutdown.starting")
+
+        # Phase 8: Cancel alert router background task
+        if self._alert_router_task is not None:
+            try:
+                self._alert_router_task.cancel()
+                try:
+                    await self._alert_router_task
+                except asyncio.CancelledError:
+                    pass
+            except Exception:
+                self.log.warning(
+                    "shutdown.alert_router_failed", exc_info=True
+                )
 
         # Phase 7: Stop dashboard publisher before IB disconnect
         if self.dashboard_publisher is not None:
