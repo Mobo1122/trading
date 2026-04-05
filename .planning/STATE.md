@@ -166,6 +166,10 @@ Recent decisions affecting current work:
 - [07-06]: Default IV of 0.25 (25%) when implied volatility unavailable from Redis or position data
 - [07-06]: OCC symbol parsing as fallback for contract detail resolution when Redis cache misses
 - [07-06]: ScenarioPositionResult typed interface instead of unknown[] for per-position results
+- [08-01]: Added aiohttp as explicit dependency (required by slack-sdk AsyncWebhookClient at import time)
+- [08-01]: AlertRouter uses exact subscribe (not psubscribe) for precise channel matching
+- [08-01]: Monotonic timestamps for SMS cooldown (immune to system clock adjustments)
+- [08-01]: Independent try/except per notifier in AlertRouter._route (one failure must not block the other)
 - [08-02]: asyncio.wait (not wait_for) with explicit listener_task for clean cancellation on both timeout and cross-process resolution paths
 - [08-02]: Redis key TTL = timeout + 3600s for dashboard visibility after expiration
 - [08-02]: scan_iter (not KEYS) for get_pending -- production-safe Redis enumeration
