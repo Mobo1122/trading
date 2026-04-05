@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 7 of 8 (Dashboard & Monitoring)
-Plan: 3 of 4 in current phase
+Plan: 5 of 6 in current phase
 Status: In progress
-Last activity: 2026-04-05 -- Completed 07-03-PLAN.md (Positions display with real-time P&L)
+Last activity: 2026-04-05 -- Completed 07-05-PLAN.md (Health monitoring panel)
 
-Progress: [########=-] 81% (34/42 plans complete)
+Progress: [#########-] 95% (35/37 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 34
+- Total plans completed: 35
 - Average duration: 4min
-- Total execution time: 2.21 hours
+- Total execution time: 2.29 hours
 
 **By Phase:**
 
@@ -33,10 +33,10 @@ Progress: [########=-] 81% (34/42 plans complete)
 | 04-order-execution | 4/4 | 15min | 4min |
 | 05-core-agent-pipeline | 7/7 | 30min | 4min |
 | 06-advanced-agent-intelligence | 3/3 | 14min | 5min |
-| 07-dashboard-monitoring | 3/4 | 20min | 7min |
+| 07-dashboard-monitoring | 4/6 | 25min | 6min |
 
 **Recent Trend:**
-- Last 5 plans: 06-03 (8min), 07-01 (6min), 07-02 (8min), 07-03 (6min)
+- Last 5 plans: 07-01 (6min), 07-02 (8min), 07-03 (6min), 07-05 (5min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -155,6 +155,8 @@ Recent decisions affecting current work:
 - [07-03]: Price source: last price preferred, fallback to bid/ask midpoint
 - [07-03]: Portfolio /api/portfolio calls /api/positions internally to aggregate -- single source of truth
 - [07-03]: Net liquidation = market_value + unrealized_pnl + realized_pnl (additive formula)
+- [07-05]: Extract get_db_session to deps.py to break circular import between server.py and route modules
+- [07-05]: Agent last-seen thresholds: 10min stale (yellow), 1hr inactive (red) for agent activity display
 
 ### Pending Todos
 
@@ -171,5 +173,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-05
-Stopped at: Completed 07-03-PLAN.md (Positions display with real-time P&L). Phase 7 in progress.
+Stopped at: Completed 07-05-PLAN.md (Health monitoring panel). Phase 7 in progress.
 Resume file: None
