@@ -43,6 +43,7 @@ from trading.orders.tracker import OrderTracker
 from trading.alerts.approval import ApprovalManager
 from trading.alerts.router import AlertRouter
 from trading.alerts.slack import SlackNotifier
+from trading.alerts.slack_bot import create_slack_bot, start_socket_mode
 from trading.alerts.sms import SMSNotifier
 from trading.risk.circuit_breaker import CircuitBreaker
 from trading.risk.manager import RiskManager
@@ -154,6 +155,7 @@ class TradingApp:
         self.sms_notifier: SMSNotifier | None = None
         self.approval_manager: ApprovalManager | None = None
         self._alert_router_task: asyncio.Task | None = None
+        self._slack_bot_task: asyncio.Task | None = None
 
     async def startup(self) -> None:
         """Start the trading application.
@@ -334,6 +336,8 @@ class TradingApp:
         ):
             self.slack_notifier = SlackNotifier(
                 webhook_url=self.settings.alerts.slack_webhook_url,
+                bot_token=self.settings.alerts.slack_bot_token or None,
+                channel=self.settings.alerts.slack_channel,
             )
 
         if (
@@ -465,6 +469,27 @@ class TradingApp:
             except Exception:
                 self.log.warning("alert_router.start_failed", exc_info=True)
 
+        # Phase 8: Start Slack bot Socket Mode if configured (non-critical)
+        if (
+            self.settings.alerts.slack_enabled
+            and self.settings.alerts.slack_bot_token
+            and self.settings.alerts.slack_app_token
+            and self.approval_manager is not None
+        ):
+            try:
+                slack_app = create_slack_bot(
+                    bot_token=self.settings.alerts.slack_bot_token,
+                    approval_manager=self.approval_manager,
+                )
+                self._slack_bot_task = asyncio.create_task(
+                    start_socket_mode(
+                        slack_app, self.settings.alerts.slack_app_token
+                    )
+                )
+                self.log.info("slack_bot.started")
+            except Exception:
+                self.log.warning("slack_bot.start_failed", exc_info=True)
+
         # Phase 8: Recover expired approvals from previous process (non-critical)
         if self.approval_manager is not None:
             try:
@@ -562,6 +587,19 @@ class TradingApp:
         to ensure all cleanup runs even if individual steps fail.
         """
         self.log.info("shutdown.starting")
+
+        # Phase 8: Cancel Slack bot background task
+        if self._slack_bot_task is not None:
+            try:
+                self._slack_bot_task.cancel()
+                try:
+                    await self._slack_bot_task
+                except asyncio.CancelledError:
+                    pass
+            except Exception:
+                self.log.warning(
+                    "shutdown.slack_bot_failed", exc_info=True
+                )
 
         # Phase 8: Cancel alert router background task
         if self._alert_router_task is not None:
