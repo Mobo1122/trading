@@ -29,6 +29,7 @@ from pydantic_settings import BaseSettings, PydanticBaseSettingsSource
 from pyaml_env import parse_config
 
 from trading.agents.config import AgentConfig
+from trading.alerts.config import AlertConfig, AutoExecuteConfig
 from trading.risk.config import RiskLimitsConfig
 
 logger = structlog.get_logger()
@@ -214,6 +215,8 @@ class Settings(BaseSettings):
     agents: AgentConfig = AgentConfig()
     dashboard: DashboardConfig = DashboardConfig()
     risk_limits: RiskLimitsConfig = RiskLimitsConfig()
+    alerts: AlertConfig = AlertConfig()
+    auto_execute: AutoExecuteConfig = AutoExecuteConfig()
 
     model_config = {
         "env_prefix": "TRADING__",

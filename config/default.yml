@@ -55,6 +55,35 @@ dashboard:
   update_throttle_ms: 500
   publisher_interval: 5
 
+alerts:
+  slack_enabled: false
+  slack_webhook_url: !ENV ${SLACK_WEBHOOK_URL:}
+  slack_bot_token: !ENV ${SLACK_BOT_TOKEN:}
+  slack_app_token: !ENV ${SLACK_APP_TOKEN:}
+  slack_channel: "#trading-alerts"
+  sms_enabled: false
+  twilio_account_sid: !ENV ${TWILIO_ACCOUNT_SID:}
+  twilio_auth_token: !ENV ${TWILIO_AUTH_TOKEN:}
+  twilio_from_number: !ENV ${TWILIO_FROM_NUMBER:}
+  twilio_to_number: !ENV ${TWILIO_TO_NUMBER:}
+  sms_channels:
+    - "alerts:risk_breach"
+    - "alerts:circuit_breaker"
+    - "alerts:system_error"
+  sms_cooldown_seconds: 300
+
+auto_execute:
+  paper:
+    max_loss_dollars: 2000.0
+    max_delta_impact: 200.0
+    max_vega_impact: 400.0
+    approval_timeout_seconds: 300
+  live:
+    max_loss_dollars: 500.0
+    max_delta_impact: 50.0
+    max_vega_impact: 100.0
+    approval_timeout_seconds: 300
+
 risk_limits:
   paper:
     position:
