@@ -21,6 +21,7 @@ from trading.config import Settings
 from trading.dashboard.routes.greeks import router as greeks_router
 from trading.dashboard.routes.health import router as health_router
 from trading.dashboard.routes.positions import router as positions_router
+from trading.dashboard.routes.scenarios import router as scenarios_router
 from trading.dashboard.routes.trades import router as trades_router
 from trading.dashboard.ws.bridge import RedisBridge
 from trading.dashboard.ws.manager import ChannelManager
@@ -117,6 +118,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(greeks_router)
     app.include_router(health_router)
     app.include_router(positions_router)
+    app.include_router(scenarios_router)
     app.include_router(trades_router)
 
     @app.websocket("/ws")
