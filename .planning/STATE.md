@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** The agents find and execute profitable options trades autonomously while never violating the user's risk constraints
-**Current focus:** Phase 6 COMPLETE - Ready for Phase 7 or Phase 8
+**Current focus:** Phase 7 In Progress - Dashboard & Monitoring
 
 ## Current Position
 
-Phase: 6 of 8 (Advanced Agent Intelligence)
-Plan: 3 of 3 in current phase
-Status: Phase complete
-Last activity: 2026-04-04 -- Completed 06-03-PLAN.md (Pipeline wiring, scanner injection, app lifecycle & tests)
+Phase: 7 of 8 (Dashboard & Monitoring)
+Plan: 1 of 4 in current phase
+Status: In progress
+Last activity: 2026-04-05 -- Completed 07-01-PLAN.md (Dashboard server foundation)
 
-Progress: [########--] 74% (31/42 plans complete)
+Progress: [########=-] 76% (32/42 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 31
+- Total plans completed: 32
 - Average duration: 4min
-- Total execution time: 1.92 hours
+- Total execution time: 1.98 hours
 
 **By Phase:**
 
@@ -33,9 +33,10 @@ Progress: [########--] 74% (31/42 plans complete)
 | 04-order-execution | 4/4 | 15min | 4min |
 | 05-core-agent-pipeline | 7/7 | 30min | 4min |
 | 06-advanced-agent-intelligence | 3/3 | 14min | 5min |
+| 07-dashboard-monitoring | 1/4 | 6min | 6min |
 
 **Recent Trend:**
-- Last 5 plans: 05-07 (9min), 06-01 (3min), 06-02 (3min), 06-03 (8min)
+- Last 5 plans: 06-01 (3min), 06-02 (3min), 06-03 (8min), 07-01 (6min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -140,6 +141,12 @@ Recent decisions affecting current work:
 - [06-03]: Regime context injected via prompt_prefix parameter, not agent instruction modification
 - [06-03]: Rolling pre-check in app.run_agent_pipeline(), not inside pipeline node (cleaner separation)
 - [06-03]: Regime detection errors return empty dict -- scanner runs without regime context (non-fatal)
+- [07-01]: FastAPI app factory pattern with async lifespan context manager for resource management
+- [07-01]: RedisBridge uses per-channel throttling with atomic buffer swap to prevent flooding clients
+- [07-01]: DashboardPublisher uses SCAN (not KEYS) for Redis key enumeration (production safety)
+- [07-01]: Portfolio Greeks aggregated by summing across all mktdata:latest:greeks:* keys with rounding to 10dp
+- [07-01]: Dashboard publisher non-critical in TradingApp (try/except with warning, matching Phase 2-6 bootstrap pattern)
+- [07-01]: get_db_session as FastAPI Depends generator (same commit/rollback pattern as trading.db.session.get_session)
 
 ### Pending Todos
 
@@ -155,6 +162,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-04
-Stopped at: Completed 06-03-PLAN.md (Pipeline wiring, scanner injection, app lifecycle & tests). Phase 6 complete.
+Last session: 2026-04-05
+Stopped at: Completed 07-01-PLAN.md (Dashboard server foundation). Phase 7 in progress.
 Resume file: None
