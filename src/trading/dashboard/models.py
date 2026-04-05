@@ -7,7 +7,7 @@ appropriate for ORM compatibility.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -113,6 +113,52 @@ class ScenarioResponse(BaseModel):
     pnl: float
     pnl_percent: float
     per_position: list[dict] = []
+
+
+class ApprovalContext(BaseModel):
+    """Trade context details for an approval request.
+
+    Contains the trade parameters that the user needs to evaluate
+    when deciding whether to approve or reject a trade.
+    """
+
+    symbol: str
+    strategy_type: str
+    max_loss: float
+    max_profit: float
+    delta_impact: float
+    theta_impact: float
+    vega_impact: float
+    timeout_minutes: float
+    additional: dict[str, Any] | None = None
+
+
+class ApprovalResponse(BaseModel):
+    """Pending or resolved approval request for the dashboard.
+
+    Maps from Redis hash fields to a structured API response.
+    """
+
+    approval_id: str
+    status: str
+    context: ApprovalContext | dict
+    requested_at: str
+    timeout_at: str
+    resolved_at: str | None = None
+
+
+class ApprovalResolveRequest(BaseModel):
+    """Request body for resolving an approval (approve or reject)."""
+
+    decision: Literal["approved", "rejected"]
+
+
+class ApprovalResolveResponse(BaseModel):
+    """Response after resolving an approval request."""
+
+    success: bool
+    approval_id: str
+    decision: str
 
 
 class WSMessage(BaseModel):

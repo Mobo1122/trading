@@ -42,6 +42,8 @@ class RedisBridge:
         "dashboard:positions",
         "dashboard:health",
         "dashboard:portfolio_greeks",
+        "alerts:approval_request",
+        "alerts:approval_resolved",
     ]
 
     def __init__(
@@ -192,5 +194,11 @@ class RedisBridge:
 
         if redis_channel == "dashboard:portfolio_greeks":
             return "portfolio_greeks"
+
+        if redis_channel in (
+            "alerts:approval_request",
+            "alerts:approval_resolved",
+        ):
+            return "approvals"
 
         return None

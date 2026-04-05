@@ -16,8 +16,10 @@ import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
+from trading.alerts.approval import ApprovalManager
 from trading.cache.redis import close_redis_client, create_redis_client
 from trading.config import Settings
+from trading.dashboard.routes.approvals import router as approvals_router
 from trading.dashboard.routes.greeks import router as greeks_router
 from trading.dashboard.routes.health import router as health_router
 from trading.dashboard.routes.positions import router as positions_router
@@ -66,12 +68,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         bridge_task = asyncio.create_task(bridge.listen())
 
+        # Create approval manager with mode-specific timeout
+        if settings.trading.mode == "paper":
+            approval_timeout = settings.auto_execute.paper.approval_timeout_seconds
+        else:
+            approval_timeout = settings.auto_execute.live.approval_timeout_seconds
+        approval_manager = ApprovalManager(
+            redis=redis_client, timeout_seconds=approval_timeout
+        )
+
         # Store on app.state for access in endpoints
         app.state.redis = redis_client
         app.state.db_engine = db_engine
         app.state.session_factory = session_factory
         app.state.channel_manager = channel_manager
         app.state.bridge_task = bridge_task
+        app.state.approval_manager = approval_manager
 
         log.info(
             "dashboard.started",
@@ -115,6 +127,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
 
     # Include REST route modules
+    app.include_router(approvals_router)
     app.include_router(greeks_router)
     app.include_router(health_router)
     app.include_router(positions_router)
@@ -229,6 +242,16 @@ async def _get_channel_snapshot(redis_client, channel: str) -> dict | list | Non
             data = await redis_client.get("dashboard:portfolio_greeks")
             if data:
                 return json.loads(data)
+
+        if channel == "approvals":
+            # Return pending approvals as snapshot
+            pending: list[dict] = []
+            async for key in redis_client.scan_iter(match="approval:*"):
+                item = await redis_client.hgetall(key)
+                if item.get("status") == "pending":
+                    approval_id = key.removeprefix("approval:")
+                    pending.append({"approval_id": approval_id, **item})
+            return pending
 
     except Exception:
         logger.warning(
