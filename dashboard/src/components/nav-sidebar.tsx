@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useApprovalsStore } from "@/stores/approvals-store";
 
 const NAV_ITEMS = [
   { href: "/positions", label: "Positions" },
   { href: "/greeks", label: "Greeks" },
   { href: "/trades", label: "Trades" },
+  { href: "/approvals", label: "Approvals" },
   { href: "/health", label: "Health" },
   { href: "/scenarios", label: "Scenarios" },
 ] as const;
@@ -14,10 +16,12 @@ const NAV_ITEMS = [
 /**
  * Sidebar navigation with active link highlighting.
  *
- * Client component because it reads the current pathname via usePathname().
+ * Client component because it reads the current pathname via usePathname()
+ * and the approvals store for the pending count badge.
  */
 export function NavSidebar() {
   const pathname = usePathname();
+  const pendingCount = useApprovalsStore((s) => s.approvals.length);
 
   return (
     <nav className="w-[240px] border-r bg-card p-4 space-y-2">
@@ -38,7 +42,7 @@ export function NavSidebar() {
               key={item.href}
               href={item.href}
               className={`
-                block rounded-md px-3 py-2 text-sm font-medium transition-colors
+                flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors
                 ${
                   isActive
                     ? "bg-accent text-accent-foreground"
@@ -46,7 +50,12 @@ export function NavSidebar() {
                 }
               `}
             >
-              {item.label}
+              <span>{item.label}</span>
+              {item.href === "/approvals" && pendingCount > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground">
+                  {pendingCount}
+                </span>
+              )}
             </Link>
           );
         })}

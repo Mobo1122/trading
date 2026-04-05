@@ -1,3 +1,4 @@
+import { useApprovalsStore } from "@/stores/approvals-store";
 import { usePositionsStore } from "@/stores/positions-store";
 import { useGreeksStore } from "@/stores/greeks-store";
 import { useHealthStore } from "@/stores/health-store";
@@ -136,6 +137,8 @@ class DashboardWebSocket {
       useHealthStore.getState().setHealth(data as HealthStatus);
     } else if (channel === "portfolio_greeks") {
       useGreeksStore.getState().setPortfolioGreeks(data as Greeks);
+    } else if (channel === "approvals") {
+      useApprovalsStore.getState().updateFromWs(data);
     }
   }
 
@@ -148,6 +151,8 @@ class DashboardWebSocket {
       useHealthStore.getState().setHealth(data as HealthStatus);
     } else if (channel === "portfolio_greeks") {
       useGreeksStore.getState().setPortfolioGreeks(data as Greeks);
+    } else if (channel === "approvals") {
+      useApprovalsStore.getState().updateFromWs(data);
     } else if (channel.startsWith("quotes:")) {
       // Price update for a specific symbol -- update position price
       const priceData = data as { symbol: string; price: number };

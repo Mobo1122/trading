@@ -87,6 +87,27 @@ export interface ScenarioResponse {
   perPosition: ScenarioPositionResult[];
 }
 
+export interface ApprovalContext {
+  symbol: string;
+  strategyType: string;
+  maxLoss: number;
+  maxProfit: number;
+  deltaImpact: number;
+  thetaImpact: number;
+  vegaImpact: number;
+  timeoutMinutes: number;
+  additional?: Record<string, unknown> | null;
+}
+
+export interface Approval {
+  approvalId: string;
+  status: string;
+  context: ApprovalContext;
+  requestedAt: string;
+  timeoutAt: string;
+  resolvedAt: string | null;
+}
+
 export interface WSMessage {
   type: string;
   channel: string | null;

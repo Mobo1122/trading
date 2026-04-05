@@ -1,4 +1,5 @@
 import type {
+  Approval,
   Position,
   PortfolioSummary,
   Greeks,
@@ -87,4 +88,21 @@ export async function runScenario(
     method: "POST",
     body: JSON.stringify(request),
   });
+}
+
+export async function getPendingApprovals(): Promise<Approval[]> {
+  return fetchApi<Approval[]>("/api/approvals/pending");
+}
+
+export async function resolveApproval(
+  approvalId: string,
+  decision: "approved" | "rejected"
+): Promise<{ success: boolean }> {
+  return fetchApi<{ success: boolean }>(
+    `/api/approvals/${approvalId}/resolve`,
+    {
+      method: "POST",
+      body: JSON.stringify({ decision }),
+    }
+  );
 }
