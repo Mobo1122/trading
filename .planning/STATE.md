@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 Phase: 7 of 8 (Dashboard & Monitoring)
 Plan: 5 of 6 in current phase
 Status: In progress
-Last activity: 2026-04-05 -- Completed 07-05-PLAN.md (Health monitoring panel)
+Last activity: 2026-04-05 -- Completed 07-04-PLAN.md (Greeks display & trade history)
 
-Progress: [#########-] 95% (35/37 plans complete)
+Progress: [#########-] 97% (36/37 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 35
+- Total plans completed: 36
 - Average duration: 4min
-- Total execution time: 2.29 hours
+- Total execution time: 2.39 hours
 
 **By Phase:**
 
@@ -33,10 +33,10 @@ Progress: [#########-] 95% (35/37 plans complete)
 | 04-order-execution | 4/4 | 15min | 4min |
 | 05-core-agent-pipeline | 7/7 | 30min | 4min |
 | 06-advanced-agent-intelligence | 3/3 | 14min | 5min |
-| 07-dashboard-monitoring | 4/6 | 25min | 6min |
+| 07-dashboard-monitoring | 5/6 | 31min | 6min |
 
 **Recent Trend:**
-- Last 5 plans: 07-01 (6min), 07-02 (8min), 07-03 (6min), 07-05 (5min)
+- Last 5 plans: 07-02 (8min), 07-03 (6min), 07-05 (5min), 07-04 (6min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -155,6 +155,10 @@ Recent decisions affecting current work:
 - [07-03]: Price source: last price preferred, fallback to bid/ask midpoint
 - [07-03]: Portfolio /api/portfolio calls /api/positions internally to aggregate -- single source of truth
 - [07-03]: Net liquidation = market_value + unrealized_pnl + realized_pnl (additive formula)
+- [07-04]: Fixed proposal_id/run_id linkage: ExecutorDeps.run_id flows from PipelineState to TradeProposal.proposal_id
+- [07-04]: Greeks thresholds hardcoded (delta>500=yellow, >1000=red) matching risk_limits patterns
+- [07-04]: Trades endpoint uses per-order reasoning chain query (N+1) for simplicity at current scale
+- [07-04]: api.ts getTradeHistory updated to return {trades, total} envelope for pagination metadata
 - [07-05]: Extract get_db_session to deps.py to break circular import between server.py and route modules
 - [07-05]: Agent last-seen thresholds: 10min stale (yellow), 1hr inactive (red) for agent activity display
 
@@ -173,5 +177,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-05
-Stopped at: Completed 07-05-PLAN.md (Health monitoring panel). Phase 7 in progress.
+Stopped at: Completed 07-04-PLAN.md (Greeks display & trade history). Phase 7 in progress, 07-06 remaining.
 Resume file: None
