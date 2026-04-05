@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 7 of 8 (Dashboard & Monitoring)
-Plan: 2 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-04-05 -- Completed 07-02-PLAN.md (Dashboard frontend shell)
+Last activity: 2026-04-05 -- Completed 07-03-PLAN.md (Positions display with real-time P&L)
 
-Progress: [########=-] 79% (33/42 plans complete)
+Progress: [########=-] 81% (34/42 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 33
+- Total plans completed: 34
 - Average duration: 4min
-- Total execution time: 2.11 hours
+- Total execution time: 2.21 hours
 
 **By Phase:**
 
@@ -33,10 +33,10 @@ Progress: [########=-] 79% (33/42 plans complete)
 | 04-order-execution | 4/4 | 15min | 4min |
 | 05-core-agent-pipeline | 7/7 | 30min | 4min |
 | 06-advanced-agent-intelligence | 3/3 | 14min | 5min |
-| 07-dashboard-monitoring | 2/4 | 14min | 7min |
+| 07-dashboard-monitoring | 3/4 | 20min | 7min |
 
 **Recent Trend:**
-- Last 5 plans: 06-02 (3min), 06-03 (8min), 07-01 (6min), 07-02 (8min)
+- Last 5 plans: 06-03 (8min), 07-01 (6min), 07-02 (8min), 07-03 (6min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -151,6 +151,10 @@ Recent decisions affecting current work:
 - [07-02]: Root page redirects to /positions instead of rendering dashboard home
 - [07-02]: WebSocket client uses class singleton pattern, not React context
 - [07-02]: Server/Client boundary: root layout is Server Component, interactivity in child client components
+- [07-03]: P&L multiplier: 100x for options (OPT), 1x for stocks (STK) -- standard contract sizing
+- [07-03]: Price source: last price preferred, fallback to bid/ask midpoint
+- [07-03]: Portfolio /api/portfolio calls /api/positions internally to aggregate -- single source of truth
+- [07-03]: Net liquidation = market_value + unrealized_pnl + realized_pnl (additive formula)
 
 ### Pending Todos
 
@@ -167,5 +171,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-05
-Stopped at: Completed 07-02-PLAN.md (Dashboard frontend shell). Phase 7 in progress.
+Stopped at: Completed 07-03-PLAN.md (Positions display with real-time P&L). Phase 7 in progress.
 Resume file: None
