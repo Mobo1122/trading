@@ -45,7 +45,7 @@ class ScannerDeps:
         iv_engine: IV rank/percentile computation engine.
         earnings_calendar: Finnhub-backed earnings calendar service.
         redis_client: Async Redis client for latest market data lookup
-            via ``HGET market_data:{symbol}``.
+            via ``HGET mktdata:latest:quote:{symbol}``.
         watchlist: List of ticker symbols to scan.
         settings: Application settings for agent configuration.
     """
@@ -136,7 +136,7 @@ async def get_market_snapshot(ctx: RunContext[ScannerDeps], symbol: str) -> str:
     and other quote fields. Returns an error message if no data is cached.
     """
     try:
-        data = await ctx.deps.redis_client.hgetall(f"market_data:{symbol}")
+        data = await ctx.deps.redis_client.hgetall(f"mktdata:latest:quote:{symbol}")
         if not data:
             return json.dumps(
                 {"symbol": symbol, "error": "No market data available"}

@@ -178,7 +178,7 @@ async def _regime_node(state: PipelineState, deps: PipelineDeps) -> dict:
         # Gather latest price data from Redis
         price_data: dict[str, dict] = {}
         for symbol in state["watchlist"]:
-            data = await deps.redis_client.hgetall(f"market_data:{symbol}")
+            data = await deps.redis_client.hgetall(f"mktdata:latest:quote:{symbol}")
             if data:
                 price_data[symbol] = data
 

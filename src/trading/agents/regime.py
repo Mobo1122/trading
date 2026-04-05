@@ -163,7 +163,7 @@ class RegimeDetector:
                 Symbols with ``iv_rank is None`` are skipped.
             price_data: Mapping of symbol -> dict with at least ``last``
                 (current price) and ``prev_close`` (previous close) keys.
-                Sourced from Redis ``HGETALL market_data:{symbol}``.
+                Sourced from Redis ``HGETALL mktdata:latest:quote:{symbol}``.
             vix_data: Optional dict with ``last`` key for VIX level.
                 Used as supplementary volatility signal if available.
 

@@ -46,7 +46,7 @@ class StrategistDeps:
             (available strikes, expirations) via IB API with Redis caching.
         iv_engine: IV rank/percentile computation engine.
         redis_client: Async Redis client for latest market data lookup
-            via ``HGET market_data:{symbol}``.
+            via ``HGET mktdata:latest:quote:{symbol}``.
         risk_limits: Active risk limits profile (paper or live) that
             constrains position sizing and strategy selection.
         account_value: Current account value in dollars for position
@@ -143,7 +143,7 @@ async def get_current_price(ctx: RunContext[StrategistDeps], symbol: str) -> str
     the current underlying price.
     """
     try:
-        data = await ctx.deps.redis_client.hgetall(f"market_data:{symbol}")
+        data = await ctx.deps.redis_client.hgetall(f"mktdata:latest:quote:{symbol}")
         if not data:
             return json.dumps(
                 {"symbol": symbol, "error": "No market data available"}
