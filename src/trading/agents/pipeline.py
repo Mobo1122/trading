@@ -698,6 +698,18 @@ async def _await_approval_and_execute(
             error=str(exc),
             exc_info=True,
         )
+        if deps.redis_client:
+            try:
+                await deps.redis_client.publish(
+                    "alerts:system_error",
+                    json.dumps({
+                        "component": "approval_background_task",
+                        "error": str(exc),
+                        "approval_id": approval_id,
+                    }),
+                )
+            except Exception:
+                pass
 
 
 # ---------------------------------------------------------------------------

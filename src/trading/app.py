@@ -12,6 +12,7 @@ routing, and approval management.
 from __future__ import annotations
 
 import asyncio
+import json
 import re
 
 import structlog
@@ -574,8 +575,20 @@ class TradingApp:
             )
             return result
 
-        except Exception:
+        except Exception as exc:
             self.log.error("agent_pipeline.run_failed", exc_info=True)
+            if self.redis_client is not None:
+                try:
+                    await self.redis_client.publish(
+                        "alerts:system_error",
+                        json.dumps({
+                            "component": "agent_pipeline",
+                            "error": str(exc),
+                            "event": "pipeline_run_failed",
+                        }),
+                    )
+                except Exception:
+                    self.log.warning("system_error_alert.publish_failed", exc_info=True)
             return None
 
     async def shutdown(self) -> None:
