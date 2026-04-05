@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from typing import Any
+from uuid import uuid4
 
 import structlog
 from pydantic_ai import Agent, ModelSettings, RunContext, UsageLimits
@@ -50,6 +51,9 @@ class ExecutorDeps:
         approved_assessments: Risk-approved assessments from pipeline state.
         trade_proposals: Original strategist proposals for cross-reference.
         settings: Application settings for agent configuration.
+        run_id: Pipeline run_id used as proposal_id on TradeProposal so
+            Order.proposal_id matches AgentDecisionLog.run_id for the
+            reasoning chain join.
     """
 
     execution_service: OrderExecutionService
@@ -57,6 +61,7 @@ class ExecutorDeps:
     approved_assessments: list[dict] = field(default_factory=list)
     trade_proposals: list[dict] = field(default_factory=list)
     settings: Settings = field(default_factory=Settings)
+    run_id: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -116,8 +121,11 @@ async def submit_trade(
                 )
             )
 
-        # Construct TradeProposal for the execution service
+        # Construct TradeProposal for the execution service.
+        # Use pipeline run_id as proposal_id so Order.proposal_id matches
+        # AgentDecisionLog.run_id for reasoning chain joins.
         trade_proposal = TradeProposal(
+            proposal_id=ctx.deps.run_id if ctx.deps.run_id else str(uuid4()),
             legs=legs,
             estimated_greeks=GreeksImpact(
                 delta=proposal_data.get("estimated_delta", 0.0),

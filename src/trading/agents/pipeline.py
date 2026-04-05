@@ -385,6 +385,7 @@ async def _executor_node(state: PipelineState, deps: PipelineDeps) -> dict:
             approved_assessments=approved,
             trade_proposals=state["trade_proposals"],
             settings=deps.settings,
+            run_id=state.get("run_id", ""),
         )
 
         output, usage, messages = await run_executor(executor_deps)
