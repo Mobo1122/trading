@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** The agents find and execute profitable options trades autonomously while never violating the user's risk constraints
-**Current focus:** Phase 8 - Alerts & Autonomy
+**Current focus:** Phase 8 - Alerts & Autonomy (COMPLETE)
 
 ## Current Position
 
 Phase: 8 of 8 (Alerts & Autonomy)
-Plan: 3 of 5 in current phase
-Status: In progress
-Last activity: 2026-04-05 -- Completed 08-03-PLAN.md (Pipeline Approval Gate)
+Plan: 5 of 5 in current phase
+Status: Phase complete
+Last activity: 2026-04-05 -- Completed 08-05-PLAN.md (Slack Interactive Buttons)
 
-Progress: [####################] 95% (40/42 plans complete)
+Progress: [####################] 100% (42/42 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 40
+- Total plans completed: 42
 - Average duration: 4min
-- Total execution time: 2.68 hours
+- Total execution time: 2.88 hours
 
 **By Phase:**
 
@@ -34,10 +34,10 @@ Progress: [####################] 95% (40/42 plans complete)
 | 05-core-agent-pipeline | 7/7 | 30min | 4min |
 | 06-advanced-agent-intelligence | 3/3 | 14min | 5min |
 | 07-dashboard-monitoring | 6/6 | 39min | 7min |
-| 08-alerts-autonomy | 3/5 | 12min | 4min |
+| 08-alerts-autonomy | 5/5 | 24min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: 07-04 (6min), 07-06 (8min), 08-01 (3min), 08-02 (3min), 08-03 (6min)
+- Last 5 plans: 08-01 (3min), 08-02 (3min), 08-03 (6min), 08-04 (6min), 08-05 (6min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -177,10 +177,12 @@ Recent decisions affecting current work:
 - [08-03]: Closure-based _make_route_after_risk(deps) for three-way routing (needs deps access for threshold checking)
 - [08-03]: All Redis publish calls in pipeline nodes guarded with if deps.redis_client and try/except (non-fatal)
 - [08-03]: Kept module-level route_after_risk for backward compatibility; pipeline factory uses closure version
+- [08-05]: Approval request messages sent via chat.postMessage (bot token) not webhook, because webhooks cannot send interactive action_id buttons
+- [08-05]: Action handlers as closures inside create_slack_bot() capturing approval_manager -- clean dependency injection without global state
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
@@ -193,5 +195,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-05
-Stopped at: Completed 08-03-PLAN.md (Pipeline Approval Gate). Phase 8 in progress (3/5 plans).
+Stopped at: Completed 08-05-PLAN.md (Slack Interactive Buttons). All 8 phases complete (42/42 plans).
 Resume file: None
