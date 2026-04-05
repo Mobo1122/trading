@@ -184,15 +184,16 @@ async def _regime_node(state: PipelineState, deps: PipelineDeps) -> dict:
 
         input_summary = f"{len(state['watchlist'])} symbols"
 
-        classification = await deps.regime_detector.detect(iv_batch, price_data)
         t0 = time.monotonic()
+        classification = await deps.regime_detector.detect(iv_batch, price_data)
+        duration_ms = (time.monotonic() - t0) * 1000
 
         await log_agent_decision(
             session_factory=deps.session_factory,
             run_id=run_id,
             agent_name="regime_detector",
             output=classification,
-            duration_ms=0,
+            duration_ms=duration_ms,
             input_summary=input_summary,
         )
 

@@ -25,6 +25,7 @@ class DashboardPublisher:
       - dashboard:pipeline_status: "idle", "running", or "error"
       - dashboard:positions: JSON array of current positions
       - dashboard:portfolio_greeks: JSON object with aggregated Greeks
+      - dashboard:realized_pnl: Total realized P&L from execution records
 
     Also publishes to Redis pub/sub channels for real-time push:
       - dashboard:health: combined health blob
@@ -36,6 +37,7 @@ class DashboardPublisher:
         ib: IB connection instance (ib_async IB object).
         health_monitor: Optional HealthMonitor for pipeline status.
         interval: Seconds between publish cycles (default 5).
+        session_factory: Optional async session factory for DB queries.
     """
 
     def __init__(
@@ -44,11 +46,13 @@ class DashboardPublisher:
         ib: Any,
         health_monitor: Any | None = None,
         interval: int = 5,
+        session_factory: Any | None = None,
     ) -> None:
         self._redis = redis_client
         self._ib = ib
         self._health_monitor = health_monitor
         self._interval = interval
+        self._session_factory = session_factory
         self._task: asyncio.Task | None = None
         self._log = structlog.get_logger().bind(component="dashboard_publisher")
 
@@ -81,6 +85,7 @@ class DashboardPublisher:
                 await self._publish_pipeline_status()
                 await self._publish_positions()
                 await self._publish_portfolio_greeks()
+                await self._publish_realized_pnl()
 
                 await asyncio.sleep(self._interval)
         except asyncio.CancelledError:
@@ -224,4 +229,27 @@ class DashboardPublisher:
         except Exception:
             self._log.warning(
                 "dashboard_publisher.portfolio_greeks_failed", exc_info=True
+            )
+
+    async def _publish_realized_pnl(self) -> None:
+        """Publish total realized P&L from execution records to Redis."""
+        try:
+            if self._session_factory is None:
+                return
+            from sqlalchemy import func, select
+
+            from trading.db.models import ExecutionRecord as ExecutionRecordORM
+            from trading.db.session import get_session
+
+            async with get_session(self._session_factory) as session:
+                result = await session.execute(
+                    select(
+                        func.coalesce(func.sum(ExecutionRecordORM.realized_pnl), 0.0)
+                    ).where(ExecutionRecordORM.realized_pnl.isnot(None))
+                )
+                total = float(result.scalar_one())
+            await self._redis.set("dashboard:realized_pnl", str(round(total, 2)))
+        except Exception:
+            self._log.warning(
+                "dashboard_publisher.realized_pnl_failed", exc_info=True
             )

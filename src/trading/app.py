@@ -320,6 +320,7 @@ class TradingApp:
             ib=self.connection_manager.ib,
             health_monitor=self.health_monitor,
             interval=self.settings.dashboard.publisher_interval,
+            session_factory=self.session_factory,
         )
 
         # Phase 6: Create regime detector (non-critical)
