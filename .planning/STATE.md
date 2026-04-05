@@ -177,6 +177,10 @@ Recent decisions affecting current work:
 - [08-03]: Closure-based _make_route_after_risk(deps) for three-way routing (needs deps access for threshold checking)
 - [08-03]: All Redis publish calls in pipeline nodes guarded with if deps.redis_client and try/except (non-fatal)
 - [08-03]: Kept module-level route_after_risk for backward compatibility; pipeline factory uses closure version
+- [08-04]: Zustand store re-fetches full pending list on any WebSocket approval event (simple, queue is small)
+- [08-04]: Both alerts:approval_request and alerts:approval_resolved map to single 'approvals' WebSocket topic
+- [08-04]: ApprovalManager created in dashboard lifespan with mode-specific timeout from settings.auto_execute
+- [08-04]: ApprovalContext parsing with try/except fallback to raw dict for graceful handling of incomplete context
 - [08-05]: Approval request messages sent via chat.postMessage (bot token) not webhook, because webhooks cannot send interactive action_id buttons
 - [08-05]: Action handlers as closures inside create_slack_bot() capturing approval_manager -- clean dependency injection without global state
 
