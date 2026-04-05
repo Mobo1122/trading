@@ -20,6 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Advanced Agent Intelligence** - Add market regime awareness and automated position rolling to the agent pipeline
 - [x] **Phase 7: Dashboard & Monitoring** - Provide full visibility into positions, P&L, Greeks, agent reasoning, and system health via web dashboard
 - [x] **Phase 8: Alerts & Autonomy** - Enable autonomous small-trade execution, human approval workflows, and real-time alerting
+- [ ] **Phase 9: Integration Fixes & Tech Debt** - Fix cross-phase wiring gaps (Redis namespace, circuit breaker, health monitor) and resolve tech debt from milestone audit
 
 ## Phase Details
 
@@ -174,10 +175,27 @@ Plans:
 - [x] 08-04-PLAN.md — Dashboard approval UI (REST endpoints, Next.js page with approval cards, Zustand store, WebSocket updates)
 - [x] 08-05-PLAN.md — Slack interactive buttons via slack-bolt Socket Mode, Block Kit approve/reject buttons, message update on resolution
 
+### Phase 9: Integration Fixes & Tech Debt
+**Goal**: Fix the 3 critical cross-phase wiring gaps discovered by milestone audit (Redis namespace mismatch, circuit breaker dead code, health monitor property) and resolve all tracked tech debt items so the system operates correctly end-to-end
+**Depends on**: Phase 8 (all prior phases complete)
+**Requirements**: AGENT-01, AGENT-02, AGENT-07, RISK-03, RISK-07, DASH-05
+**Gap Closure**: Closes all gaps from v1-MILESTONE-AUDIT.md
+**Success Criteria** (what must be TRUE):
+  1. Agents (scanner, strategist, regime detector) read live market data from the correct Redis namespace and receive non-empty price context at runtime
+  2. Realized losses from filled trades automatically accumulate in the circuit breaker, triggering daily/weekly loss-limit halts when thresholds are breached
+  3. Dashboard pipeline status reflects actual system health (not permanently "idle")
+  4. Portfolio realized P&L is tracked and displayed on the dashboard
+  5. All tech debt items from the milestone audit are resolved (timing bug, missing test, documentation mismatches)
+**Plans**: TBD
+
+Plans:
+- [ ] 09-01-PLAN.md — Fix Redis namespace mismatch in scanner, strategist, and regime detector; wire FillTracker → CircuitBreaker for loss accumulation; fix HealthMonitor.current_health property
+- [ ] 09-02-PLAN.md — Dashboard realized P&L writer, regime detector timing fix, missing commission test, documentation cleanup
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 Note: Phases 6 and 7 can execute in parallel after Phase 5 completes.
 
 | Phase | Plans Complete | Status | Completed |
@@ -190,3 +208,4 @@ Note: Phases 6 and 7 can execute in parallel after Phase 5 completes.
 | 6. Advanced Agent Intelligence | 3/3 | Complete | 2026-04-04 |
 | 7. Dashboard & Monitoring | 6/6 | Complete | 2026-04-05 |
 | 8. Alerts & Autonomy | 5/5 | Complete | 2026-04-05 |
+| 9. Integration Fixes & Tech Debt | 0/2 | In Progress | — |
