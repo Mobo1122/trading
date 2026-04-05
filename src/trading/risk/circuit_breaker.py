@@ -11,6 +11,7 @@ Auto-reset occurs at US market open (9:30am ET) on appropriate boundaries.
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
@@ -189,6 +190,26 @@ class CircuitBreaker:
             daily_loss=daily_loss,
             weekly_loss=weekly_loss,
         )
+
+        # Publish alert event for alert router (non-fatal)
+        try:
+            await self._redis.publish(
+                "alerts:circuit_breaker",
+                json.dumps({
+                    "halt_type": halt_type,
+                    "reason": (
+                        f"{halt_type.title()} loss limit breached "
+                        f"(daily=${daily_loss:,.2f}, weekly=${weekly_loss:,.2f})"
+                    ),
+                    "mode": self._mode,
+                    "timestamp": now_iso,
+                }),
+            )
+        except Exception:
+            log.warning(
+                "circuit_breaker.alert_publish_failed",
+                exc_info=True,
+            )
 
     async def load_from_db(self) -> None:
         """Restore circuit breaker state from Postgres into Redis.

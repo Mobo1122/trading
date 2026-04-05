@@ -3,7 +3,8 @@
 Connects regime_detector -> scanner -> strategist -> risk_manager ->
 executor in a StateGraph with conditional routing:
   - After scanner: short-circuits to END if no opportunities found.
-  - After risk_manager: short-circuits to END if nothing approved.
+  - After risk_manager: routes to executor (below threshold),
+    approval_gate (above threshold), or END (nothing approved).
 
 The regime_detector node runs first to classify market conditions and
 inject regime context into scanner prompts. Rolling candidates from
@@ -21,9 +22,12 @@ Exports:
 
 from __future__ import annotations
 
+import asyncio
+import json
 import time
 import uuid
 from dataclasses import dataclass, field
+from functools import partial
 from typing import Any
 
 import structlog
@@ -44,6 +48,7 @@ from trading.agents.rolling import ExpirationMonitor
 from trading.agents.scanner import ScannerDeps, run_scanner
 from trading.agents.state import PipelineState
 from trading.agents.strategist import StrategistDeps, run_strategist
+from trading.alerts.config import AutoExecuteThresholds
 from trading.config import Settings
 
 log = structlog.get_logger("trading.agents.pipeline")
@@ -73,6 +78,8 @@ class PipelineDeps:
         account_value: Current account value in dollars for sizing.
         regime_detector: Phase 6 regime detection module (optional).
         expiration_monitor: Phase 6 expiration monitor for rolling (optional).
+        approval_manager: Phase 8 ApprovalManager for trade approval (optional).
+        auto_execute_thresholds: Phase 8 thresholds for auto-execute gating (optional).
     """
 
     iv_engine: Any
@@ -86,6 +93,66 @@ class PipelineDeps:
     account_value: float = 100_000.0
     regime_detector: Any = None
     expiration_monitor: Any = None
+    approval_manager: Any = None
+    auto_execute_thresholds: AutoExecuteThresholds | None = None
+
+
+# ---------------------------------------------------------------------------
+# Threshold check
+# ---------------------------------------------------------------------------
+
+
+def _exceeds_threshold(
+    assessment: dict,
+    trade_proposals: list[dict],
+    thresholds: AutoExecuteThresholds,
+) -> bool:
+    """Check if a risk-approved assessment exceeds auto-execute thresholds.
+
+    Finds the matching trade proposal for the assessment and checks whether
+    any of max_loss, delta_impact, or vega_impact exceeds the configured
+    thresholds. Returns True (require approval) as the safe default when
+    the matching proposal cannot be found.
+
+    Args:
+        assessment: A risk assessment dict with ``proposal_id`` and symbol.
+        trade_proposals: List of trade proposal dicts from the strategist.
+        thresholds: Auto-execute threshold limits.
+
+    Returns:
+        True if any threshold is exceeded (needs approval), False otherwise.
+    """
+    # Find matching proposal by proposal_id or symbol
+    proposal_id = assessment.get("proposal_id", "")
+    symbol = assessment.get("symbol", "")
+    proposal: dict | None = None
+
+    for p in trade_proposals:
+        if proposal_id and p.get("proposal_id") == proposal_id:
+            proposal = p
+            break
+        if symbol and p.get("symbol") == symbol:
+            proposal = p
+            break
+
+    if proposal is None:
+        # Safe default: require approval if we cannot find the proposal
+        return True
+
+    if abs(proposal.get("max_loss", 0)) > thresholds.max_loss_dollars:
+        return True
+    if (
+        abs(proposal.get("delta_impact", proposal.get("delta", 0)))
+        > thresholds.max_delta_impact
+    ):
+        return True
+    if (
+        abs(proposal.get("vega_impact", proposal.get("vega", 0)))
+        > thresholds.max_vega_impact
+    ):
+        return True
+
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -308,7 +375,11 @@ async def _strategist_node(state: PipelineState, deps: PipelineDeps) -> dict:
 
 
 async def _risk_node(state: PipelineState, deps: PipelineDeps) -> dict:
-    """Run the risk manager agent and return assessments."""
+    """Run the risk manager agent and return assessments.
+
+    Also publishes ``alerts:risk_breach`` to Redis when proposals are
+    rejected for risk violations.
+    """
     run_id = state.get("run_id", "")
     input_summary = f"{len(state['trade_proposals'])} trade proposals from strategist"
     t0 = time.monotonic()
@@ -344,6 +415,26 @@ async def _risk_node(state: PipelineState, deps: PipelineDeps) -> dict:
             input_summary=input_summary,
         )
 
+        # Publish risk breach alerts for rejected proposals
+        if deps.redis_client:
+            for a in output.assessments:
+                if not a.approved:
+                    try:
+                        await deps.redis_client.publish(
+                            "alerts:risk_breach",
+                            json.dumps({
+                                "symbol": getattr(a, "symbol", ""),
+                                "violations": getattr(a, "violations", []),
+                                "reason": getattr(a, "reason", str(a)),
+                                "run_id": run_id,
+                            }),
+                        )
+                    except Exception:
+                        log.warning(
+                            "pipeline.risk_node.alert_publish_failed",
+                            exc_info=True,
+                        )
+
         return {
             "risk_assessments": [a.model_dump() for a in output.assessments],
             "risk_reasoning": output.reasoning,
@@ -370,7 +461,11 @@ async def _risk_node(state: PipelineState, deps: PipelineDeps) -> dict:
 
 
 async def _executor_node(state: PipelineState, deps: PipelineDeps) -> dict:
-    """Run the executor agent and return execution results."""
+    """Run the executor agent and return execution results.
+
+    Publishes ``alerts:trade_executed`` for successful executions and
+    ``alerts:trade_rejected`` for failures to Redis for alert routing.
+    """
     run_id = state.get("run_id", "")
     approved = [
         a for a in state["risk_assessments"] if a.get("approved", False)
@@ -412,6 +507,37 @@ async def _executor_node(state: PipelineState, deps: PipelineDeps) -> dict:
             input_summary=input_summary,
         )
 
+        # Publish alert events for each execution result
+        if deps.redis_client:
+            for r in output.results:
+                try:
+                    if r.status == "submitted":
+                        await deps.redis_client.publish(
+                            "alerts:trade_executed",
+                            json.dumps({
+                                "symbol": r.proposal_id,
+                                "status": r.status,
+                                "order_id": r.order_id,
+                                "details": r.details,
+                                "run_id": run_id,
+                            }),
+                        )
+                    else:
+                        await deps.redis_client.publish(
+                            "alerts:trade_rejected",
+                            json.dumps({
+                                "symbol": r.proposal_id,
+                                "reason": r.details,
+                                "status": r.status,
+                                "run_id": run_id,
+                            }),
+                        )
+                except Exception:
+                    log.warning(
+                        "pipeline.executor_node.alert_publish_failed",
+                        exc_info=True,
+                    )
+
         return {
             "execution_results": [r.model_dump() for r in output.results],
             "executor_reasoning": output.reasoning,
@@ -439,6 +565,141 @@ async def _executor_node(state: PipelineState, deps: PipelineDeps) -> dict:
         }
 
 
+async def _approval_gate_node(
+    state: PipelineState, deps: PipelineDeps
+) -> dict:
+    """Route above-threshold trades through human approval.
+
+    Returns immediately with ``pending_approval`` status and spawns a
+    background task that waits for approval resolution. If approved,
+    the background task invokes ``_executor_node`` directly.
+
+    When ``deps.approval_manager`` is None (fallback), auto-approves
+    the trade with a warning log.
+    """
+    run_id = state.get("run_id", "")
+    approval_id = f"approval-{run_id or uuid.uuid4().hex[:8]}"
+
+    # Build context from approved assessments and trade proposals
+    approved = [
+        a for a in state.get("risk_assessments", []) if a.get("approved")
+    ]
+    symbols = list({a.get("symbol", "") for a in approved if a.get("symbol")})
+    proposals = state.get("trade_proposals", [])
+
+    # Aggregate context from proposals
+    total_max_loss = 0.0
+    total_max_profit = 0.0
+    total_delta = 0.0
+    total_theta = 0.0
+    total_vega = 0.0
+    strategy_types: list[str] = []
+
+    for p in proposals:
+        total_max_loss += abs(p.get("max_loss", 0))
+        total_max_profit += abs(p.get("max_profit", 0))
+        total_delta += abs(p.get("delta_impact", p.get("delta", 0)))
+        total_theta += abs(p.get("theta_impact", p.get("theta", 0)))
+        total_vega += abs(p.get("vega_impact", p.get("vega", 0)))
+        if p.get("strategy_type"):
+            strategy_types.append(p["strategy_type"])
+
+    context = {
+        "symbols": symbols,
+        "strategy_types": strategy_types,
+        "max_loss": total_max_loss,
+        "max_profit": total_max_profit,
+        "delta_impact": total_delta,
+        "theta_impact": total_theta,
+        "vega_impact": total_vega,
+        "timeout_minutes": (
+            deps.auto_execute_thresholds.approval_timeout_seconds // 60
+            if deps.auto_execute_thresholds
+            else 5
+        ),
+        "run_id": run_id,
+    }
+
+    if deps.approval_manager is None:
+        log.warning(
+            "pipeline.approval_gate.no_manager",
+            approval_id=approval_id,
+        )
+        return {"approval_status": "approved", "approval_id": ""}
+
+    # Spawn background task for approval resolution + execution
+    asyncio.create_task(
+        _await_approval_and_execute(approval_id, context, state, deps)
+    )
+
+    log.info(
+        "pipeline.approval_gate.pending",
+        approval_id=approval_id,
+        symbols=symbols,
+    )
+
+    return {"approval_status": "pending_approval", "approval_id": approval_id}
+
+
+async def _await_approval_and_execute(
+    approval_id: str,
+    context: dict,
+    state: PipelineState,
+    deps: PipelineDeps,
+) -> None:
+    """Background task: wait for approval and execute if granted.
+
+    Calls ``ApprovalManager.request_approval`` which blocks until
+    approved, rejected, or timed out. On approval, invokes
+    ``_executor_node`` directly. On rejection/timeout, publishes
+    ``alerts:trade_rejected`` and returns.
+
+    Wrapped in try/except so errors never crash the background task.
+    """
+    try:
+        result = await deps.approval_manager.request_approval(
+            approval_id, context
+        )
+
+        if result == "approved":
+            log.info(
+                "approval.granted",
+                approval_id=approval_id,
+            )
+            # Execute directly -- _executor_node publishes alerts:trade_executed
+            await _executor_node(state, deps)
+
+        elif result in ("rejected", "timed_out"):
+            log.info(
+                f"approval.{result}",
+                approval_id=approval_id,
+            )
+            if deps.redis_client:
+                try:
+                    await deps.redis_client.publish(
+                        "alerts:trade_rejected",
+                        json.dumps({
+                            "approval_id": approval_id,
+                            "reason": result,
+                            "symbols": context.get("symbols", []),
+                            "run_id": context.get("run_id", ""),
+                        }),
+                    )
+                except Exception:
+                    log.warning(
+                        "approval.alert_publish_failed",
+                        exc_info=True,
+                    )
+
+    except Exception as exc:
+        log.warning(
+            "approval.background_task_error",
+            approval_id=approval_id,
+            error=str(exc),
+            exc_info=True,
+        )
+
+
 # ---------------------------------------------------------------------------
 # Routing functions
 # ---------------------------------------------------------------------------
@@ -456,11 +717,61 @@ def route_after_scan(state: PipelineState) -> str:
     return END
 
 
+def _make_route_after_risk(deps: PipelineDeps):
+    """Create a three-way routing function after risk_manager.
+
+    Returns a closure that captures ``deps`` for threshold checking.
+    Routes to:
+      - ``END``: No approved assessments.
+      - ``"executor"``: Below threshold or no approval gate configured.
+      - ``"approval_gate"``: Above threshold, needs human approval.
+    """
+
+    def _route(state: PipelineState) -> str:
+        approved = [
+            a
+            for a in state.get("risk_assessments", [])
+            if a.get("approved", False)
+        ]
+        if not approved:
+            log.info(
+                "pipeline.route.risk_none_approved", reason="no approvals"
+            )
+            return END
+
+        # Backward compatible: no approval gate if not configured
+        if (
+            deps.auto_execute_thresholds is None
+            or deps.approval_manager is None
+        ):
+            return "executor"
+
+        # Check each approved assessment against thresholds
+        trade_proposals = state.get("trade_proposals", [])
+        for assessment in approved:
+            if _exceeds_threshold(
+                assessment, trade_proposals, deps.auto_execute_thresholds
+            ):
+                log.info(
+                    "pipeline.route.approval_required",
+                    reason="above auto-execute threshold",
+                )
+                return "approval_gate"
+
+        return "executor"
+
+    return _route
+
+
+# Keep module-level reference for backward compatibility (tests may import it)
 def route_after_risk(state: PipelineState) -> str:
     """Route to executor if any proposals approved, else END.
 
     Short-circuits before execution when the risk gate rejects
     every proposal -- nothing to execute.
+
+    Note: This is the legacy two-way router. The pipeline uses
+    ``_make_route_after_risk(deps)`` for the three-way version.
     """
     approved = [
         a
@@ -484,9 +795,10 @@ async def create_pipeline(
 ) -> CompiledStateGraph:
     """Build and compile the LangGraph StateGraph pipeline.
 
-    The graph has 5 nodes (regime_detector, scanner, strategist,
-    risk_manager, executor) connected by edges with two conditional
-    routing points that allow early termination when nothing to do.
+    The graph has 5-6 nodes (regime_detector, scanner, strategist,
+    risk_manager, executor, and optionally approval_gate) connected
+    by edges with conditional routing that allows early termination
+    and human approval gating for above-threshold trades.
 
     Graph topology::
 
@@ -495,10 +807,11 @@ async def create_pipeline(
                                       +-> END (no opps)      risk_manager
                                                                     |
                                                             [conditional]
-                                                                    |
-                                                            executor -> END
-                                                                |
-                                                            END (no approvals)
+                                                           /      |       \\
+                                                  executor   approval_gate  END
+                                                      |          |
+                                                     END        END
+                                                          (bg task handles)
 
     Args:
         deps: Pipeline dependencies bound to node closures.
@@ -516,6 +829,9 @@ async def create_pipeline(
     workflow.add_node("strategist", lambda state: _strategist_node(state, deps))
     workflow.add_node("risk_manager", lambda state: _risk_node(state, deps))
     workflow.add_node("executor", lambda state: _executor_node(state, deps))
+    workflow.add_node(
+        "approval_gate", lambda state: _approval_gate_node(state, deps)
+    )
 
     # Edges: START -> regime_detector -> scanner
     workflow.add_edge(START, "regime_detector")
@@ -527,18 +843,29 @@ async def create_pipeline(
     # Linear: strategist -> risk_manager
     workflow.add_edge("strategist", "risk_manager")
 
-    # Conditional: risk_manager -> executor or END
-    workflow.add_conditional_edges("risk_manager", route_after_risk)
+    # Conditional: risk_manager -> executor, approval_gate, or END
+    workflow.add_conditional_edges(
+        "risk_manager",
+        _make_route_after_risk(deps),
+    )
 
-    # Linear: executor -> END
+    # Terminal edges
     workflow.add_edge("executor", END)
+    workflow.add_edge("approval_gate", END)
 
     # Compile (with optional checkpoint persistence)
     graph = workflow.compile(checkpointer=checkpointer)
 
     log.info(
         "pipeline.created",
-        nodes=["regime_detector", "scanner", "strategist", "risk_manager", "executor"],
+        nodes=[
+            "regime_detector",
+            "scanner",
+            "strategist",
+            "risk_manager",
+            "executor",
+            "approval_gate",
+        ],
         has_checkpointer=checkpointer is not None,
     )
 
@@ -629,6 +956,7 @@ async def run_pipeline(
         proposals=num_proposals,
         approved=num_approved,
         executed=num_executed,
+        approval_status=final_state.get("approval_status", ""),
     )
 
     return final_state
