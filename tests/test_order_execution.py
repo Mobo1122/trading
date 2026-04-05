@@ -502,6 +502,36 @@ class TestFillTracker:
         # Should NOT raise -- IntegrityError is caught
         await tracker.record_fill("order-001", trade, fill)
 
+    @pytest.mark.asyncio
+    async def test_record_commission_updates_record(self, tracker, mock_session_factory):
+        """record_commission updates ExecutionRecord with commission and realized P&L."""
+        _, session = mock_session_factory
+
+        exec_record = MagicMock()
+        exec_record.commission = None
+        exec_record.realized_pnl = None
+        exec_result = MagicMock()
+        exec_result.scalar_one_or_none.return_value = exec_record
+
+        mock_order = MagicMock()
+        mock_order.total_commission = 0.0
+        order_result = MagicMock()
+        order_result.scalar_one_or_none.return_value = mock_order
+
+        session.execute = AsyncMock(side_effect=[exec_result, order_result])
+
+        trade = make_mock_trade()
+        fill = self._make_fill()
+        report = MagicMock()
+        report.commission = 1.25
+        report.realizedPNL = -150.0
+
+        await tracker.record_commission("order-001", trade, fill, report)
+
+        assert exec_record.commission == 1.25
+        assert exec_record.realized_pnl == -150.0
+        assert mock_order.total_commission == 1.25
+
 
 # ============================================================================
 # OrderRecoveryManager Tests
