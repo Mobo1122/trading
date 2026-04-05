@@ -47,12 +47,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Dashboard & Monitoring
 
-- [ ] **DASH-01**: Web dashboard displays all positions with real-time P&L (per-position and portfolio)
-- [ ] **DASH-02**: Dashboard displays portfolio-level aggregated Greeks (delta, gamma, theta, vega)
-- [ ] **DASH-03**: Dashboard shows full trade history with timestamps, fills, and reasoning
-- [ ] **DASH-04**: Dashboard shows each agent's reasoning chain for every trade decision
-- [ ] **DASH-05**: Dashboard shows system health (connection status, agent heartbeats, data freshness)
-- [ ] **DASH-06**: Dashboard provides P&L scenario analysis (what-if: underlying +/-X%, IV +/-Y%, T+N days)
+- [x] **DASH-01**: Web dashboard displays all positions with real-time P&L (per-position and portfolio)
+- [x] **DASH-02**: Dashboard displays portfolio-level aggregated Greeks (delta, gamma, theta, vega)
+- [x] **DASH-03**: Dashboard shows full trade history with timestamps, fills, and reasoning
+- [x] **DASH-04**: Dashboard shows each agent's reasoning chain for every trade decision
+- [x] **DASH-05**: Dashboard shows system health (connection status, agent heartbeats, data freshness)
+- [x] **DASH-06**: Dashboard provides P&L scenario analysis (what-if: underlying +/-X%, IV +/-Y%, T+N days)
 
 ### Alerts & Autonomy
 
