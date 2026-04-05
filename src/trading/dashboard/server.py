@@ -9,18 +9,19 @@ from __future__ import annotations
 
 import asyncio
 import json
-from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import structlog
 import uvicorn
-from fastapi import Depends, FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from trading.cache.redis import close_redis_client, create_redis_client
 from trading.config import Settings
+from trading.dashboard.routes.greeks import router as greeks_router
+from trading.dashboard.routes.health import router as health_router
 from trading.dashboard.routes.positions import router as positions_router
+from trading.dashboard.routes.trades import router as trades_router
 from trading.dashboard.ws.bridge import RedisBridge
 from trading.dashboard.ws.manager import ChannelManager
 from trading.db.engine import create_db_engine, create_session_factory
@@ -113,7 +114,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
 
     # Include REST route modules
+    app.include_router(greeks_router)
+    app.include_router(health_router)
     app.include_router(positions_router)
+    app.include_router(trades_router)
 
     @app.websocket("/ws")
     async def websocket_endpoint(ws: WebSocket):
@@ -234,25 +238,9 @@ async def _get_channel_snapshot(redis_client, channel: str) -> dict | list | Non
     return None
 
 
-async def get_db_session(request: Request) -> AsyncGenerator[AsyncSession, None]:
-    """FastAPI dependency that yields an async database session.
+from trading.dashboard.deps import get_db_session  # noqa: E402 -- re-export
 
-    Uses the session factory stored on app.state during lifespan startup.
-    Commits on success, rolls back on exception.
-
-    Yields:
-        An AsyncSession for database operations.
-    """
-    session_factory = request.app.state.session_factory
-    session = session_factory()
-    try:
-        yield session
-        await session.commit()
-    except Exception:
-        await session.rollback()
-        raise
-    finally:
-        await session.close()
+__all__ = ["create_app", "get_db_session", "run_server"]
 
 
 def run_server(settings: Settings | None = None) -> None:
