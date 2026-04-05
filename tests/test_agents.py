@@ -1393,3 +1393,156 @@ class TestPhase6AppWiring:
             assert len(rolling) == 1
             assert rolling[0]["symbol"] == "SPY"
             assert rolling[0]["con_id"] == 12345
+
+
+# ============================================================================
+# Phase 10: Rolling Pipeline Node Tests
+# ============================================================================
+
+
+class TestRollingPipelineNode:
+    """Tests for the _rolling_node pipeline integration."""
+
+    @pytest.mark.asyncio
+    async def test_rolling_node_evaluates_candidates(self):
+        """Rolling node deserializes candidates, evaluates, and builds proposals."""
+        from trading.agents.pipeline import _rolling_node
+        from trading.agents.rolling import RollingCandidate, RollingDecision, ExpirationMonitor
+        from trading.agents.config import RollingConfig
+
+        # Create a mock ExpirationMonitor
+        config = RollingConfig()
+        monitor = MagicMock(spec=ExpirationMonitor)
+        monitor._config = config
+
+        candidate = RollingCandidate(
+            symbol="SPY",
+            con_id=12345,
+            current_expiry="20260410",
+            days_to_expiry=5,
+            position_size=-1.0,
+            avg_cost=2.50,
+            current_value=-3.00,
+            unrealized_pnl=-0.50,
+            right="P",
+            strike=400.0,
+            rolling_reason="approaching_expiry",
+        )
+
+        decision = RollingDecision(
+            candidate=candidate,
+            should_roll=True,
+            action="roll",
+            target_expiry="20260510",
+            target_strike=400.0,
+            reasoning="DTE=5 <= threshold. Rolling to 20260510.",
+        )
+
+        monitor.evaluate_rolling.return_value = [decision]
+        monitor.build_roll_proposals.return_value = [
+            {
+                "symbol": "SPY",
+                "right": "P",
+                "strike": 400.0,
+                "expiry": "20260410",
+                "action": "BUY",
+                "quantity": 1.0,
+                "strategy_type": "roll_close",
+                "reasoning": "DTE=5 <= threshold. Rolling to 20260510.",
+                "con_id": 12345,
+            },
+            {
+                "symbol": "SPY",
+                "right": "P",
+                "strike": 400.0,
+                "expiry": "20260510",
+                "action": "SELL",
+                "quantity": 1.0,
+                "strategy_type": "roll_open",
+                "reasoning": "DTE=5 <= threshold. Rolling to 20260510.",
+            },
+        ]
+
+        deps = MagicMock()
+        deps.expiration_monitor = monitor
+        deps.session_factory = MagicMock()
+
+        state = {
+            "run_id": "test-run-001",
+            "rolling_candidates": [candidate.model_dump()],
+            "rolling_decisions": [],
+        }
+
+        result = await _rolling_node(state, deps)
+
+        monitor.evaluate_rolling.assert_called_once()
+        monitor.build_roll_proposals.assert_called_once()
+        assert len(result["rolling_decisions"]) == 2
+        # Check proposals are StrategyProposal-compatible
+        for p in result["rolling_decisions"]:
+            assert "proposal_id" in p
+            assert "symbol" in p
+            assert "strategy_type" in p
+            assert "legs" in p
+            assert "max_loss" in p
+            assert "reasoning" in p
+            assert p["proposal_id"].startswith("roll-")
+
+    @pytest.mark.asyncio
+    async def test_rolling_node_skips_when_no_candidates(self):
+        """Rolling node returns empty decisions when no candidates."""
+        from trading.agents.pipeline import _rolling_node
+
+        deps = MagicMock()
+        deps.expiration_monitor = MagicMock()
+
+        state = {
+            "run_id": "test-run-002",
+            "rolling_candidates": [],
+            "rolling_decisions": [],
+        }
+
+        result = await _rolling_node(state, deps)
+        assert result == {"rolling_decisions": []}
+
+    @pytest.mark.asyncio
+    async def test_rolling_node_skips_when_monitor_none(self):
+        """Rolling node returns empty decisions when expiration_monitor is None."""
+        from trading.agents.pipeline import _rolling_node
+
+        deps = MagicMock()
+        deps.expiration_monitor = None
+
+        state = {
+            "run_id": "test-run-003",
+            "rolling_candidates": [{"symbol": "SPY"}],
+            "rolling_decisions": [],
+        }
+
+        result = await _rolling_node(state, deps)
+        assert result == {"rolling_decisions": []}
+
+    def test_route_after_scan_continues_for_rolling_decisions(self):
+        """route_after_scan routes to strategist when only rolling_decisions exist."""
+        from trading.agents.pipeline import route_after_scan
+
+        # Pure-rolling run: no scanner opportunities but rolling decisions present
+        state = {
+            "opportunities": [],
+            "rolling_decisions": [{"proposal_id": "roll-123", "symbol": "SPY"}],
+        }
+        assert route_after_scan(state) == "strategist"
+
+        # Neither opportunities nor rolling decisions -> END
+        state_empty = {
+            "opportunities": [],
+            "rolling_decisions": [],
+        }
+        assert route_after_scan(state_empty) == END
+
+        # Both present -> strategist (existing behavior preserved)
+        state_both = {
+            "opportunities": [{"symbol": "AAPL"}],
+            "rolling_decisions": [{"proposal_id": "roll-456", "symbol": "SPY"}],
+        }
+        assert route_after_scan(state_both) == "strategist"

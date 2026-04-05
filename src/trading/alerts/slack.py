@@ -134,6 +134,13 @@ class SlackNotifier:
             approval_id = data.get("approval_id", "?")
             return f"Approval Resolved: {approval_id} -> {decision}"
 
+        if channel == "alerts:trade_rejected":
+            symbol = data.get("symbol", "")
+            symbols = data.get("symbols", [])
+            display_symbol = symbol or (", ".join(symbols) if symbols else "?")
+            reason = data.get("reason", "unknown")
+            return f"Trade Rejected: {display_symbol} ({reason})"
+
         return f"[{channel_short}] {json.dumps(data, default=str)[:200]}"
 
     def _build_blocks(self, channel: str, data: dict) -> list[dict]:
@@ -161,6 +168,8 @@ class SlackNotifier:
             return self._blocks_approval_request(data)
         if channel == "alerts:approval_resolved":
             return self._blocks_approval_resolved(data)
+        if channel == "alerts:trade_rejected":
+            return self._blocks_trade_rejected(data)
 
         # Default: plain section with data summary
         channel_short = channel.replace("alerts:", "")
@@ -368,3 +377,57 @@ class SlackNotifier:
                 },
             },
         ]
+
+    def _blocks_trade_rejected(self, data: dict) -> list[dict]:
+        """Build blocks for a trade rejection alert.
+
+        Handles two payload shapes:
+        - Executor rejection: {symbol, reason, status, run_id}
+        - Approval rejection: {approval_id, reason, symbols, run_id}
+        """
+        # Handle both executor (symbol singular) and approval (symbols list) payloads
+        symbol = data.get("symbol", "")
+        symbols = data.get("symbols", [])
+        display_symbol = symbol or (", ".join(symbols) if symbols else "?")
+        reason = data.get("reason", "unknown")
+        status = data.get("status", "")
+        approval_id = data.get("approval_id", "")
+        run_id = data.get("run_id", "")
+
+        fields = [
+            {"type": "mrkdwn", "text": f"*Symbol:* {display_symbol}"},
+            {"type": "mrkdwn", "text": f"*Reason:* {reason}"},
+        ]
+        if status:
+            fields.append({"type": "mrkdwn", "text": f"*Status:* {status}"})
+        if approval_id:
+            fields.append({"type": "mrkdwn", "text": f"*Approval ID:* {approval_id}"})
+
+        blocks: list[dict] = [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "Trade Rejected",
+                },
+            },
+            {
+                "type": "section",
+                "fields": fields,
+            },
+        ]
+
+        if run_id:
+            blocks.append(
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"Run: {run_id}",
+                        },
+                    ],
+                }
+            )
+
+        return blocks

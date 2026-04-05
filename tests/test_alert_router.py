@@ -452,6 +452,7 @@ class TestSlackBlocks:
         notifier = SlackNotifier(webhook_url="https://hooks.slack.com/test")
         known_channels = [
             "alerts:trade_executed",
+            "alerts:trade_rejected",
             "alerts:risk_breach",
             "alerts:circuit_breaker",
             "alerts:system_error",
@@ -463,3 +464,55 @@ class TestSlackBlocks:
             assert len(blocks) >= 1, f"No blocks for {channel}"
             # All should have a header block
             assert blocks[0]["type"] == "header", f"No header for {channel}"
+
+    @pytest.mark.asyncio
+    async def test_slack_trade_rejected_executor_payload(self) -> None:
+        """SlackNotifier formats executor rejection with Block Kit blocks."""
+        notifier = SlackNotifier(webhook_url="https://hooks.slack.com/test")
+        data = {
+            "symbol": "SPY-20260410-P-400",
+            "reason": "Order rejected by IB: insufficient margin",
+            "status": "rejected",
+            "run_id": "run-123",
+        }
+
+        blocks = notifier._build_blocks("alerts:trade_rejected", data)
+        text = notifier._build_text("alerts:trade_rejected", data)
+
+        assert any(b.get("type") == "header" for b in blocks)
+        header = next(b for b in blocks if b.get("type") == "header")
+        assert "Trade Rejected" in header["text"]["text"]
+
+        section = next(b for b in blocks if b.get("type") == "section")
+        field_texts = [f["text"] for f in section["fields"]]
+        assert any("SPY-20260410-P-400" in t for t in field_texts)
+        assert any("insufficient margin" in t for t in field_texts)
+        assert any("rejected" in t for t in field_texts)  # status field
+
+        assert "Trade Rejected" in text
+        assert "SPY-20260410-P-400" in text
+
+    @pytest.mark.asyncio
+    async def test_slack_trade_rejected_approval_payload(self) -> None:
+        """SlackNotifier formats approval rejection with Block Kit blocks."""
+        notifier = SlackNotifier(webhook_url="https://hooks.slack.com/test")
+        data = {
+            "approval_id": "approval-abc123",
+            "reason": "timed_out",
+            "symbols": ["AAPL", "MSFT"],
+            "run_id": "run-456",
+        }
+
+        blocks = notifier._build_blocks("alerts:trade_rejected", data)
+        text = notifier._build_text("alerts:trade_rejected", data)
+
+        header = next(b for b in blocks if b.get("type") == "header")
+        assert "Trade Rejected" in header["text"]["text"]
+
+        section = next(b for b in blocks if b.get("type") == "section")
+        field_texts = [f["text"] for f in section["fields"]]
+        assert any("AAPL" in t for t in field_texts)  # symbols joined
+        assert any("timed_out" in t for t in field_texts)
+        assert any("approval-abc123" in t for t in field_texts)  # approval_id field
+
+        assert "Trade Rejected" in text
