@@ -2,10 +2,10 @@
 
 Provides the TradingApp class and main() function for starting the system.
 Configures structured logging, displays a startup banner, and wires all
-Phase 1-6 components: IB connection, database, Redis, order tracking,
+Phase 1-7 components: IB connection, database, Redis, order tracking,
 health monitoring, kill switch, market data streaming, IV analytics,
 earnings calendar, risk engine, order execution pipeline, agent pipeline,
-regime detection, and option position rolling.
+regime detection, option position rolling, and dashboard publisher.
 """
 
 from __future__ import annotations
@@ -27,6 +27,7 @@ from trading.config import Settings
 from trading.contracts import ContractCache, ContractResolver
 from trading.core.connection import IBConnectionManager
 from trading.core.health import HealthMonitor
+from trading.dashboard.publisher import DashboardPublisher
 from trading.db.engine import create_db_engine, create_session_factory
 from trading.kill_switch import KillSwitch
 from trading.market_data.distributor import RedisDistributor
@@ -93,7 +94,7 @@ def _mask_password(url: str) -> str:
 class TradingApp:
     """Main trading application lifecycle manager.
 
-    Wires all Phase 1-6 components together and manages their lifecycle:
+    Wires all Phase 1-7 components together and manages their lifecycle:
       - IB connection manager (with auto-reconnect)
       - Database engine and session factory
       - Redis client
@@ -109,6 +110,7 @@ class TradingApp:
       - Agent pipeline deps and compiled LangGraph pipeline (AI agents)
       - Regime detector (market condition classification)
       - Expiration monitor (option position rolling logic)
+      - Dashboard publisher (writes state to Redis for dashboard server)
     """
 
     def __init__(self, settings: Settings) -> None:
@@ -138,6 +140,8 @@ class TradingApp:
         # Phase 6: Regime detection and rolling
         self.regime_detector: RegimeDetector | None = None
         self.expiration_monitor: ExpirationMonitor | None = None
+        # Phase 7: Dashboard publisher
+        self.dashboard_publisher: DashboardPublisher | None = None
 
     async def startup(self) -> None:
         """Start the trading application.
@@ -294,6 +298,14 @@ class TradingApp:
             settings=self.settings,
         )
 
+        # Phase 7: Create dashboard publisher
+        self.dashboard_publisher = DashboardPublisher(
+            redis_client=self.redis_client,
+            ib=self.connection_manager.ib,
+            health_monitor=self.health_monitor,
+            interval=self.settings.dashboard.publisher_interval,
+        )
+
         # Phase 6: Create regime detector (non-critical)
         if self.settings.agents.regime.enabled:
             try:
@@ -376,6 +388,14 @@ class TradingApp:
                 self.log.info("expiration_monitor.created")
             except Exception:
                 self.log.warning("expiration_monitor.create_failed", exc_info=True)
+
+        # Phase 7: Start dashboard publisher (non-critical)
+        if self.dashboard_publisher is not None:
+            try:
+                await self.dashboard_publisher.start()
+                self.log.info("dashboard_publisher.started")
+            except Exception:
+                self.log.warning("dashboard_publisher.start_failed", exc_info=True)
 
         # Phase 5: Compile agent pipeline with checkpoint persistence (non-critical)
         if self.pipeline_deps is not None:
@@ -461,6 +481,13 @@ class TradingApp:
         to ensure all cleanup runs even if individual steps fail.
         """
         self.log.info("shutdown.starting")
+
+        # Phase 7: Stop dashboard publisher before IB disconnect
+        if self.dashboard_publisher is not None:
+            try:
+                await self.dashboard_publisher.stop()
+            except Exception:
+                self.log.warning("shutdown.dashboard_publisher_failed", exc_info=True)
 
         # Phase 2: Stop market data BEFORE IB disconnects (writer needs to flush)
         if self.staleness_monitor is not None:
