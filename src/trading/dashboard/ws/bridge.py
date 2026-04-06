@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import time
 
 import structlog
 from redis.asyncio import Redis

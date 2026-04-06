@@ -12,7 +12,7 @@ for the same execId, it is buffered and applied once the fill lands.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import structlog
 from ib_async import CommissionReport, Fill, Trade

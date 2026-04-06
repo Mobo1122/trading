@@ -18,7 +18,7 @@ import json
 from typing import TYPE_CHECKING, Any
 
 import structlog
-from ib_async import IB, LimitOrder, MarketOrder, StopOrder, Trade
+from ib_async import IB, MarketOrder, Trade
 
 from trading.db.models import Order
 from trading.db.session import get_session

@@ -12,7 +12,7 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 from trading.risk.config import GreeksLimits
-from trading.risk.models import GreeksImpact, RiskDecision, TradeProposal, ViolatedRule
+from trading.risk.models import RiskDecision, TradeProposal, ViolatedRule
 
 
 class PortfolioGreeks(BaseModel):
