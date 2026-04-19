@@ -7,16 +7,21 @@ rest of the application. See RESEARCH.md Pitfall 1.
 
 Usage::
 
-    checkpointer = await create_checkpointer(conn_string)
+    checkpointer, pool = await create_checkpointer(conn_string)
     graph = workflow.compile(checkpointer=checkpointer)
+    # on shutdown:
+    await pool.close()
 """
 
 from __future__ import annotations
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from psycopg_pool import AsyncConnectionPool
 
 
-async def create_checkpointer(conn_string: str) -> AsyncPostgresSaver:
+async def create_checkpointer(
+    conn_string: str,
+) -> tuple[AsyncPostgresSaver, AsyncConnectionPool]:
     """Create and initialize a Postgres checkpoint saver.
 
     Connects to PostgreSQL using psycopg and creates the internal
@@ -28,8 +33,8 @@ async def create_checkpointer(conn_string: str) -> AsyncPostgresSaver:
             the asyncpg dialect (``postgresql+asyncpg://``).
 
     Returns:
-        An initialized AsyncPostgresSaver ready for use with
-        ``workflow.compile(checkpointer=...)``.
+        Tuple of (checkpointer, pool). The caller owns the pool and
+        must call ``await pool.close()`` during shutdown.
 
     Raises:
         ValueError: If the connection string contains ``+asyncpg``,
@@ -43,6 +48,15 @@ async def create_checkpointer(conn_string: str) -> AsyncPostgresSaver:
             "See RESEARCH.md Pitfall 1."
         )
 
-    checkpointer = AsyncPostgresSaver.from_conn_string(conn_string)
+    # autocommit=True is required by AsyncPostgresSaver for CREATE TABLE
+    pool = AsyncConnectionPool(
+        conninfo=conn_string,
+        min_size=1,
+        max_size=4,
+        open=False,
+        kwargs={"autocommit": True, "prepare_threshold": 0},
+    )
+    await pool.open()
+    checkpointer = AsyncPostgresSaver(conn=pool)
     await checkpointer.setup()
-    return checkpointer
+    return checkpointer, pool

@@ -157,6 +157,8 @@ class TradingApp:
         self.approval_manager: ApprovalManager | None = None
         self._alert_router_task: asyncio.Task | None = None
         self._slack_bot_task: asyncio.Task | None = None
+        # Phase 5: psycopg pool owned by checkpointer (closed on shutdown)
+        self._checkpoint_pool = None
 
     async def startup(self) -> None:
         """Start the trading application.
@@ -512,7 +514,7 @@ class TradingApp:
         # Phase 5: Compile agent pipeline with checkpoint persistence (non-critical)
         if self.pipeline_deps is not None:
             try:
-                checkpointer = await create_checkpointer(
+                checkpointer, self._checkpoint_pool = await create_checkpointer(
                     self.settings.agents.checkpoint_conn_string
                 )
                 self.agent_pipeline = await create_pipeline(
@@ -669,6 +671,12 @@ class TradingApp:
                 await self.db_engine.dispose()
             except Exception:
                 self.log.warning("shutdown.db_dispose_failed", exc_info=True)
+
+        if self._checkpoint_pool is not None:
+            try:
+                await self._checkpoint_pool.close()
+            except Exception:
+                self.log.warning("shutdown.checkpoint_pool_close_failed", exc_info=True)
 
         self.log.info("shutdown", status="complete")
 
