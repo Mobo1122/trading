@@ -69,7 +69,7 @@ class IBConnectionManager:
         self._log.info(
             "ib.connect_start",
             host=self.settings.ib.host,
-            port=self.settings.trading.ib_port,
+            port=self.settings.ib.port,
         )
         await self._do_connect()
 
@@ -86,14 +86,14 @@ class IBConnectionManager:
             try:
                 await self.ib.connectAsync(
                     host=self.settings.ib.host,
-                    port=self.settings.trading.ib_port,
+                    port=self.settings.ib.port,
                     clientId=self.settings.ib.client_id,
                     timeout=self.settings.ib.timeout,
                 )
                 self._connected.set()
                 self._log.info(
                     "ib.connected",
-                    port=self.settings.trading.ib_port,
+                    port=self.settings.ib.port,
                 )
                 return
             except Exception as e:

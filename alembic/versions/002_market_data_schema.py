@@ -33,7 +33,7 @@ def upgrade() -> None:
     # -- market_quotes table --
     op.create_table(
         "market_quotes",
-        sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
+        sa.Column("id", sa.Integer, autoincrement=True, nullable=False),
         sa.Column(
             "timestamp",
             sa.DateTime(timezone=True),
@@ -49,6 +49,7 @@ def upgrade() -> None:
         sa.Column("volume", sa.Float, nullable=True),
         sa.Column("open_interest", sa.Float, nullable=True),
         sa.Column("implied_volatility", sa.Float, nullable=True),
+        sa.PrimaryKeyConstraint("id", "timestamp"),
     )
 
     op.create_index(
@@ -63,7 +64,7 @@ def upgrade() -> None:
     # -- option_greeks table --
     op.create_table(
         "option_greeks",
-        sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
+        sa.Column("id", sa.Integer, autoincrement=True, nullable=False),
         sa.Column(
             "timestamp",
             sa.DateTime(timezone=True),
@@ -78,6 +79,7 @@ def upgrade() -> None:
         sa.Column("theta", sa.Float, nullable=True),
         sa.Column("vega", sa.Float, nullable=True),
         sa.Column("und_price", sa.Float, nullable=True),
+        sa.PrimaryKeyConstraint("id", "timestamp"),
     )
 
     op.create_index(
@@ -98,7 +100,7 @@ def upgrade() -> None:
     # -- iv_history table --
     op.create_table(
         "iv_history",
-        sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
+        sa.Column("id", sa.Integer, autoincrement=True, nullable=False),
         sa.Column(
             "timestamp",
             sa.DateTime(timezone=True),
@@ -110,6 +112,7 @@ def upgrade() -> None:
         sa.Column("iv_high", sa.Float, nullable=True),
         sa.Column("iv_low", sa.Float, nullable=True),
         sa.Column("hv_close", sa.Float, nullable=True),
+        sa.PrimaryKeyConstraint("id", "timestamp"),
     )
 
     op.create_index(

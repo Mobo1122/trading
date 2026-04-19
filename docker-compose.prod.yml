@@ -7,6 +7,11 @@
 # This file adds: db-migrate, trading, dashboard-api, dashboard-ui.
 
 services:
+  # ── Override IB Gateway to accept connections from Docker network ──
+  ib-gateway:
+    volumes:
+      - ./ibc-config.ini:/home/ibgateway/ibc/config.ini.tmpl
+
   # ── Run Alembic migrations before anything starts ──────────────
   db-migrate:
     build: .
@@ -25,6 +30,7 @@ services:
     environment:
       TRADING_MODE: ${TRADING_MODE:-paper}
       TRADING__IB__HOST: ib-gateway
+      TRADING__IB__PORT: "4004"
       TRADING__DATABASE__URL: postgresql+asyncpg://trading:${POSTGRES_PASSWORD:-trading}@timescaledb:5432/trading
       TRADING__REDIS__URL: redis://redis:6379/0
       TRADING__AGENTS__CHECKPOINT_CONN_STRING: postgresql://trading:${POSTGRES_PASSWORD:-trading}@timescaledb:5432/trading

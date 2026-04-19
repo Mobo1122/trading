@@ -88,7 +88,7 @@ class DashboardWebSocket {
    */
   subscribe(channel: string): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ action: "subscribe", channel }));
+      this.ws.send(JSON.stringify({ type: "subscribe", channel }));
     }
   }
 
@@ -97,7 +97,7 @@ class DashboardWebSocket {
    */
   unsubscribe(channel: string): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ action: "unsubscribe", channel }));
+      this.ws.send(JSON.stringify({ type: "unsubscribe", channel }));
     }
   }
 
@@ -128,13 +128,26 @@ class DashboardWebSocket {
     }
   }
 
+  private mergeHealth(partial: Record<string, unknown>): void {
+    const store = useHealthStore.getState();
+    const existing = store.health ?? {} as HealthStatus;
+    // Map WS field names to HealthStatus fields
+    const merged: HealthStatus = {
+      ...existing,
+      ibConnected: "ibStatus" in partial ? partial.ibStatus === "connected" : existing.ibConnected,
+      pipelineStatus: (partial.pipelineStatus as string) ?? existing.pipelineStatus,
+      lastHeartbeat: (partial.heartbeat as string | null) ?? existing.lastHeartbeat,
+    };
+    store.setHealth(merged);
+  }
+
   private handleSnapshot(channel: string | null, data: unknown): void {
-    if (!channel) return;
+    if (!channel || data == null) return;
 
     if (channel === "positions") {
       usePositionsStore.getState().setPositions(data as Position[]);
     } else if (channel === "health") {
-      useHealthStore.getState().setHealth(data as HealthStatus);
+      this.mergeHealth(data as Record<string, unknown>);
     } else if (channel === "portfolio_greeks") {
       useGreeksStore.getState().setPortfolioGreeks(data as Greeks);
     } else if (channel === "approvals") {
@@ -148,7 +161,7 @@ class DashboardWebSocket {
     if (channel === "positions") {
       usePositionsStore.getState().updatePosition(data as Position);
     } else if (channel === "health") {
-      useHealthStore.getState().setHealth(data as HealthStatus);
+      this.mergeHealth(data as Record<string, unknown>);
     } else if (channel === "portfolio_greeks") {
       useGreeksStore.getState().setPortfolioGreeks(data as Greeks);
     } else if (channel === "approvals") {
@@ -171,7 +184,7 @@ class DashboardWebSocket {
     this.stopPing();
     this.pingTimer = setInterval(() => {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send(JSON.stringify({ action: "ping" }));
+        this.ws.send(JSON.stringify({ type: "ping" }));
       }
     }, PING_INTERVAL);
   }

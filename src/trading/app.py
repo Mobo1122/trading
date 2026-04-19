@@ -171,7 +171,7 @@ class TradingApp:
         self.log = structlog.get_logger("trading.app")
 
         mode = self.settings.trading.mode.upper()
-        port = self.settings.trading.ib_port
+        port = self.settings.ib.port
         db_url = _mask_password(self.settings.database.url)
         redis_url = self.settings.redis.url
 
@@ -436,7 +436,10 @@ class TradingApp:
         # Phase 4: Recover in-flight orders after reconnect (non-critical)
         if self.order_recovery is not None:
             try:
-                summary = await self.order_recovery.recover_after_reconnect()
+                summary = await asyncio.wait_for(
+                    self.order_recovery.recover_after_reconnect(),
+                    timeout=15,
+                )
                 self.log.info("order_recovery.complete", **summary)
             except Exception:
                 self.log.warning("order_recovery.failed", exc_info=True)

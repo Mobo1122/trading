@@ -60,13 +60,15 @@ def upgrade() -> None:
     # -- order_state_transitions table --
     op.create_table(
         "order_state_transitions",
-        sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
+        sa.Column("id", sa.Integer, autoincrement=True, nullable=False),
         sa.Column(
             "timestamp",
             sa.DateTime(timezone=True),
             nullable=False,
             server_default=sa.func.now(),
         ),
+        # Composite PK includes timestamp so TimescaleDB can partition as hypertable
+        sa.PrimaryKeyConstraint("id", "timestamp"),
         sa.Column(
             "order_id",
             sa.String(36),

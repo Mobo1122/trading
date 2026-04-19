@@ -160,17 +160,18 @@ def _load_yaml_config(trading_mode: str) -> dict[str, Any]:
     """
     config: dict[str, Any] = {}
 
-    # Load default config
+    # Load default config (default_value="" so missing env vars become empty strings
+    # rather than pyaml-env's "N/A" default, matching pydantic field defaults)
     default_path = CONFIG_DIR / "default.yml"
     if default_path.exists():
-        loaded = parse_config(str(default_path))
+        loaded = parse_config(str(default_path), default_value="")
         if loaded:
             config = loaded
 
     # Overlay mode-specific config
     mode_path = CONFIG_DIR / f"{trading_mode}.yml"
     if mode_path.exists():
-        mode_config = parse_config(str(mode_path))
+        mode_config = parse_config(str(mode_path), default_value="")
         if mode_config:
             _deep_merge(config, mode_config)
 
