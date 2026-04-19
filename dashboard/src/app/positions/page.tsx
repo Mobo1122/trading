@@ -6,52 +6,37 @@ import { PositionsTable } from "@/components/positions/positions-table";
 import { usePositionsStore } from "@/stores/positions-store";
 import { getPositions, getPortfolio } from "@/lib/api";
 
-/**
- * Positions page -- the primary dashboard view.
- *
- * On mount, fetches initial positions and portfolio summary from the
- * REST API and hydrates the Zustand store. Real-time updates arrive
- * via WebSocket through the WsProvider in the root layout.
- */
 export default function PositionsPage() {
-  const setPositions = usePositionsStore((state) => state.setPositions);
-  const setPortfolioSummary = usePositionsStore(
-    (state) => state.setPortfolioSummary
-  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadInitialData() {
+    (async () => {
       try {
         const [positions, portfolio] = await Promise.all([
           getPositions(),
           getPortfolio(),
         ]);
-
-        if (!cancelled) {
-          setPositions(positions);
-          setPortfolioSummary(portfolio);
-          setLoading(false);
-        }
+        if (cancelled) return;
+        const store = usePositionsStore.getState();
+        store.setPositions(positions ?? []);
+        if (portfolio) store.setPortfolioSummary(portfolio);
+        setLoading(false);
       } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Failed to load positions"
-          );
-          setLoading(false);
-        }
+        if (cancelled) return;
+        setError(
+          err instanceof Error ? err.message : "Failed to load positions"
+        );
+        setLoading(false);
       }
-    }
-
-    loadInitialData();
+    })();
 
     return () => {
       cancelled = true;
     };
-  }, [setPositions, setPortfolioSummary]);
+  }, []);
 
   if (loading) {
     return (

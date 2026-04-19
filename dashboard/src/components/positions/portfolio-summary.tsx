@@ -35,60 +35,35 @@ function pnlColor(value: number): string {
 export function PortfolioSummary() {
   const summary = usePositionsStore((state) => state.portfolioSummary);
 
-  const totalMarketValue = summary?.totalMarketValue ?? 0;
-  const unrealizedPnl = summary?.totalUnrealizedPnl ?? 0;
-  const realizedPnl = summary?.totalRealizedPnl ?? 0;
-  const netLiquidation = summary?.netLiquidation ?? 0;
+  if (!summary) {
+    return (
+      <p className="text-muted-foreground">No portfolio data available.</p>
+    );
+  }
+
+  const metrics = [
+    { label: "Total Market Value", value: summary.totalMarketValue, color: false },
+    { label: "Unrealized P&L", value: summary.totalUnrealizedPnl, color: true },
+    { label: "Realized P&L", value: summary.totalRealizedPnl, color: true },
+    { label: "Net Liquidation", value: summary.netLiquidation, color: false },
+  ];
 
   return (
     <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm text-muted-foreground">
-            Total Market Value
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-2xl font-bold">{formatUSD(totalMarketValue)}</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm text-muted-foreground">
-            Unrealized P&L
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className={`text-2xl font-bold ${pnlColor(unrealizedPnl)}`}>
-            {formatUSD(unrealizedPnl)}
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm text-muted-foreground">
-            Realized P&L
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className={`text-2xl font-bold ${pnlColor(realizedPnl)}`}>
-            {formatUSD(realizedPnl)}
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm text-muted-foreground">
-            Net Liquidation
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-2xl font-bold">{formatUSD(netLiquidation)}</p>
-        </CardContent>
-      </Card>
+      {metrics.map((m) => (
+        <Card key={m.label}>
+          <CardHeader>
+            <CardTitle className="text-sm text-muted-foreground">
+              {m.label}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className={`text-2xl font-bold ${m.color ? pnlColor(m.value) : ""}`}>
+              {formatUSD(m.value)}
+            </p>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }

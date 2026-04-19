@@ -58,9 +58,8 @@ function pnlColor(value: number | null | undefined): string {
  * reverses the direction.
  */
 export function PositionsTable() {
-  const positions = usePositionsStore((state) =>
-    Object.values(state.positions)
-  );
+  const positionsMap = usePositionsStore((state) => state.positions);
+  const positions = Object.values(positionsMap);
   const [sortField, setSortField] = useState<SortField>("symbol");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
