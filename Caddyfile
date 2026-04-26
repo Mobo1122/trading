@@ -1,4 +1,9 @@
 {$PUBLIC_HOST} {
+	# Basic auth gates the entire site (incl. /ws and /api/*)
+	basic_auth {
+		{$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
+	}
+
 	# WebSocket endpoint (matched first; Caddy auto-detects Upgrade header)
 	handle /ws {
 		reverse_proxy dashboard-api:8000

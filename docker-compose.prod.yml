@@ -103,6 +103,8 @@ services:
       - caddy-config:/config
     environment:
       PUBLIC_HOST: ${PUBLIC_HOST:-trading.moboabayomi.com}
+      BASIC_AUTH_USER: ${BASIC_AUTH_USER}
+      BASIC_AUTH_HASH: ${BASIC_AUTH_HASH}
     depends_on:
       - dashboard-ui
       - dashboard-api
