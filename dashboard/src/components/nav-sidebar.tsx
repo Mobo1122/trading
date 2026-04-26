@@ -21,6 +21,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { n: "04", href: "/approvals", label: "Approvals" },
   { n: "05", href: "/health", label: "Health" },
   { n: "06", href: "/scenarios", label: "Scenarios" },
+  { n: "07", href: "/mode", label: "Mode" },
 ] as const;
 
 export function NavSidebar() {

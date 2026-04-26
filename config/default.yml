@@ -22,6 +22,11 @@ logging:
   level: "INFO"
   format: "console"
 
+scheduler:
+  enabled: true
+  interval_seconds: 900  # 15 minutes between pipeline ticks during market hours
+  starting_account_value: 250.0  # Override per environment via TRADING__SCHEDULER__STARTING_ACCOUNT_VALUE
+
 market_data:
   watchlist:
     - SPY
@@ -79,9 +84,11 @@ auto_execute:
     max_vega_impact: 400.0
     approval_timeout_seconds: 300
   live:
-    max_loss_dollars: 500.0
-    max_delta_impact: 50.0
-    max_vega_impact: 100.0
+    # Tightened for a small starter account — every live trade requires
+    # operator approval. Loosen as the account grows and the system earns trust.
+    max_loss_dollars: 0.0
+    max_delta_impact: 0.0
+    max_vega_impact: 0.0
     approval_timeout_seconds: 300
 
 risk_limits:
@@ -110,26 +117,27 @@ risk_limits:
     margin_check_timeout: 5.0
     emergency_halt: false
   live:
+    # ~£200 / ~$250 starter account. Every value here is intentionally
+    # conservative — loosen only after the system has earned trust and
+    # the account has grown enough to absorb commission drag.
     position:
-      max_position_pct: 0.05
-      max_contracts: 10
-      max_dollars: 5000.0
+      max_position_pct: 0.20    # 20% of account in any single position
+      max_contracts: 1           # one contract at a time
+      max_dollars: 50.0          # ~$50 max per position
     greeks:
-      max_delta: 500.0
-      max_gamma: 100.0
-      max_theta: -500.0
-      max_vega: 1000.0
+      max_delta: 50.0
+      max_gamma: 10.0
+      max_theta: -25.0
+      max_vega: 50.0
     loss:
-      daily_max_loss: 1000.0
-      weekly_max_loss: 3000.0
+      daily_max_loss: 25.0       # 10% daily drawdown halts trading
+      weekly_max_loss: 50.0      # 20% weekly drawdown halts trading
     strategy:
+      # Defined-risk strategies only. Naked options are forbidden.
       allowed_strategies:
-        - covered_call
-        - cash_secured_put
         - vertical_spread
         - iron_condor
         - iron_butterfly
-        - calendar_spread
       allow_naked_options: false
     margin_check_timeout: 5.0
     emergency_halt: false

@@ -114,3 +114,32 @@ export async function resolveApproval(
     }
   );
 }
+
+// --- Admin: trading mode switch ---
+
+export interface ModeStatus {
+  runtimeMode: "paper" | "live";
+  fileMode: "paper" | "live" | null;
+  canSwitch: boolean;
+  reason: string | null;
+}
+
+export interface ModeSwitchResponse {
+  previousMode: string;
+  newMode: string;
+  restartedServices: string[];
+  note: string;
+}
+
+export async function getMode(): Promise<ModeStatus> {
+  return fetchApi<ModeStatus>("/api/admin/mode");
+}
+
+export async function switchMode(
+  target: "paper" | "live"
+): Promise<ModeSwitchResponse> {
+  return fetchApi<ModeSwitchResponse>("/api/admin/mode", {
+    method: "POST",
+    body: JSON.stringify({ target, confirmation: target.toUpperCase() }),
+  });
+}

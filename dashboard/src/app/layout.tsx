@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { WsProvider } from "@/components/providers/ws-provider";
 import { NavSidebar } from "@/components/nav-sidebar";
+import { LiveBanner } from "@/components/operator/live-banner";
 import { StatusBar } from "@/components/operator/status-bar";
 
 const geistMono = Geist_Mono({
@@ -38,6 +39,7 @@ export default function RootLayout({
     >
       <body className="bg-background text-foreground antialiased">
         <StatusBar />
+        <LiveBanner />
         <div className="grid grid-cols-[176px_1fr] min-h-[calc(100vh-2.25rem)]">
           <NavSidebar />
           <main className="overflow-auto border-l border-rule">

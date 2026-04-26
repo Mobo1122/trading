@@ -127,6 +127,19 @@ class DashboardConfig(BaseModel):
     publisher_interval: int = 5
 
 
+class SchedulerConfig(BaseModel):
+    """Periodic pipeline runner configuration.
+
+    The scheduler invokes the agent pipeline on a fixed interval during
+    NYSE regular session hours. Set `enabled: false` to keep the engine
+    purely observational (data streaming, no trade decisions).
+    """
+
+    enabled: bool = True
+    interval_seconds: int = 900  # 15 minutes
+    starting_account_value: float = 250.0  # GBP-equivalent paper-default
+
+
 class MarketDataConfig(BaseModel):
     """Market data streaming configuration.
 
@@ -213,6 +226,7 @@ class Settings(BaseSettings):
     redis: RedisConfig = RedisConfig()
     logging: LoggingConfig = LoggingConfig()
     market_data: MarketDataConfig = MarketDataConfig()
+    scheduler: SchedulerConfig = SchedulerConfig()
     agents: AgentConfig = AgentConfig()
     dashboard: DashboardConfig = DashboardConfig()
     risk_limits: RiskLimitsConfig = RiskLimitsConfig()

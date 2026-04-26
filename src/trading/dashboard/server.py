@@ -19,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from trading.alerts.approval import ApprovalManager
 from trading.cache.redis import close_redis_client, create_redis_client
 from trading.config import Settings
+from trading.dashboard.routes.admin import router as admin_router
 from trading.dashboard.routes.approvals import router as approvals_router
 from trading.dashboard.routes.greeks import router as greeks_router
 from trading.dashboard.routes.health import router as health_router
@@ -127,6 +128,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
 
     # Include REST route modules
+    app.include_router(admin_router)
     app.include_router(approvals_router)
     app.include_router(greeks_router)
     app.include_router(health_router)

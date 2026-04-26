@@ -24,14 +24,18 @@ class AutoExecuteThresholds(BaseModel):
 
     Attributes:
         max_loss_dollars: Max potential loss above which approval is required.
+            Set to 0 to require operator approval on every trade regardless
+            of size — recommended for new live accounts.
         max_delta_impact: Max delta change above which approval is required.
+            Set to 0 to require approval on every trade.
         max_vega_impact: Max vega change above which approval is required.
+            Set to 0 to require approval on every trade.
         approval_timeout_seconds: Seconds to wait for approval before auto-reject.
     """
 
-    max_loss_dollars: float = Field(default=500.0, gt=0)
-    max_delta_impact: float = Field(default=50.0, gt=0)
-    max_vega_impact: float = Field(default=100.0, gt=0)
+    max_loss_dollars: float = Field(default=500.0, ge=0)
+    max_delta_impact: float = Field(default=50.0, ge=0)
+    max_vega_impact: float = Field(default=100.0, ge=0)
     approval_timeout_seconds: int = Field(default=300, gt=30, le=3600)
 
 

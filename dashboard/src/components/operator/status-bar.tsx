@@ -2,22 +2,20 @@
 
 import { useEffect, useState } from "react";
 
-import { getHealth } from "@/lib/api";
+import { getHealth, getMode } from "@/lib/api";
 import { useHealthStore } from "@/stores/health-store";
 
 /**
  * Cockpit-style status bar fixed at the top of the screen.
  *
- * Shows: brand mark, trading mode, live UTC clock, IB connection
- * pulse, and a blinking ready cursor. Everything monospaced and
- * tracked-out — the kind of strip you'd see at the top of a
- * Bloomberg Terminal or a NASA console.
+ * Shows: brand mark, trading mode (red in LIVE), live UTC clock, IB
+ * connection pulse, and a blinking ready cursor. Polls the health and
+ * mode endpoints so the bar stays accurate across all pages.
  */
 export function StatusBar() {
   const ibConnected = useHealthStore((s) => s.health?.ibConnected ?? false);
   const setHealth = useHealthStore((s) => s.setHealth);
-  // Render an empty placeholder during SSR so the server and the first
-  // client paint agree. Once mounted we tick once a second.
+  const [mode, setMode] = useState<"paper" | "live" | "unknown">("unknown");
   const [now, setNow] = useState<string>("--:--:--");
 
   useEffect(() => {
@@ -26,8 +24,6 @@ export function StatusBar() {
     return () => clearInterval(id);
   }, []);
 
-  // Light-weight health poll so the global status bar stays accurate
-  // regardless of which page is currently mounted.
   useEffect(() => {
     let cancelled = false;
     async function poll() {
@@ -35,7 +31,7 @@ export function StatusBar() {
         const data = await getHealth();
         if (!cancelled) setHealth(data);
       } catch {
-        /* non-fatal — bar stays in last-known state */
+        /* non-fatal */
       }
     }
     poll();
@@ -46,18 +42,58 @@ export function StatusBar() {
     };
   }, [setHealth]);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function poll() {
+      try {
+        const data = await getMode();
+        if (!cancelled) setMode(data.runtimeMode);
+      } catch {
+        /* non-fatal */
+      }
+    }
+    poll();
+    const id = setInterval(poll, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
+
+  const isLive = mode === "live";
+
   return (
-    <header className="sticky top-0 z-30 grid h-9 grid-cols-[1fr_auto_1fr] items-center border-b border-rule bg-black/85 px-4 backdrop-blur-md">
+    <header
+      className={`sticky top-0 z-30 grid h-9 grid-cols-[1fr_auto_1fr] items-center border-b px-4 backdrop-blur-md ${
+        isLive
+          ? "bg-negative/15 border-negative/60"
+          : "bg-black/85 border-rule"
+      }`}
+    >
       {/* left: brand + mode */}
       <div className="flex items-center gap-3 text-[11px] tracking-[0.18em] uppercase">
         <span className="font-display text-[15px] not-italic tracking-normal text-foreground">
           Operator
         </span>
         <span className="text-rule">/</span>
-        <span className="text-muted-foreground">Paper Mode</span>
+        <span
+          className={
+            isLive
+              ? "text-negative font-medium"
+              : "text-muted-foreground"
+          }
+        >
+          {isLive ? "Live Mode" : mode === "paper" ? "Paper Mode" : "Loading"}
+        </span>
+        {isLive && (
+          <span
+            className="inline-block h-1.5 w-1.5 bg-negative pulse"
+            aria-hidden
+          />
+        )}
       </div>
 
-      {/* center: live UTC clock — the heartbeat of the room */}
+      {/* center: live UTC clock */}
       <div className="flex items-center gap-2 text-[11px] tabular-nums tracking-[0.14em] text-foreground">
         <span className="text-muted-foreground">UTC</span>
         <span className="tnum">{now}</span>
@@ -75,7 +111,11 @@ export function StatusBar() {
           {ibConnected ? "IB Online" : "IB Offline"}
         </span>
         <span className="text-rule">/</span>
-        <span className="text-accent caret">Ready</span>
+        <span
+          className={`caret ${isLive ? "text-negative" : "text-accent"}`}
+        >
+          {isLive ? "Armed" : "Ready"}
+        </span>
       </div>
     </header>
   );

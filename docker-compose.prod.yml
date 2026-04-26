@@ -55,6 +55,9 @@ services:
 
   # ── Dashboard API (FastAPI + WebSocket) ────────────────────────
   # Not exposed externally; Caddy proxies /api/* and /ws to it.
+  # Has docker socket + project dir mounted so the operator can trigger
+  # mode switches (paper <-> live) which restart the trading and
+  # ib-gateway containers.
   dashboard-api:
     build: .
     command: >-
@@ -68,6 +71,10 @@ services:
       TRADING__REDIS__URL: redis://redis:6379/0
       TRADING__DASHBOARD__CORS_ORIGINS: '["https://${PUBLIC_HOST:-trading.moboabayomi.com}"]'
       TRADING__LOGGING__FORMAT: json
+      HOST_PROJECT_DIR: /host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/host
     depends_on:
       db-migrate:
         condition: service_completed_successfully

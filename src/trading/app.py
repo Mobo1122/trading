@@ -49,6 +49,7 @@ from trading.alerts.sms import SMSNotifier
 from trading.risk.circuit_breaker import CircuitBreaker
 from trading.risk.manager import RiskManager
 from trading.risk.repository import RiskRepository
+from trading.scheduler import MarketScheduler
 
 
 def setup_logging(settings: Settings) -> None:
@@ -159,6 +160,8 @@ class TradingApp:
         self._slack_bot_task: asyncio.Task | None = None
         # Phase 5: psycopg pool owned by checkpointer (closed on shutdown)
         self._checkpoint_pool = None
+        # Periodic pipeline runner — gated by NYSE market hours
+        self.scheduler: MarketScheduler | None = None
 
     async def startup(self) -> None:
         """Start the trading application.
@@ -538,6 +541,22 @@ class TradingApp:
                         exc_info=True,
                     )
 
+        # Periodic scheduler — fires the pipeline on a cadence during NYSE hours.
+        # Skipped if disabled by config or if no pipeline got compiled.
+        if (
+            self.settings.scheduler.enabled
+            and self.agent_pipeline is not None
+        ):
+            try:
+                self.scheduler = MarketScheduler(
+                    self,
+                    interval_seconds=self.settings.scheduler.interval_seconds,
+                    account_value=self.settings.scheduler.starting_account_value,
+                )
+                await self.scheduler.start()
+            except Exception:
+                self.log.warning("scheduler.start_failed", exc_info=True)
+
     async def run_agent_pipeline(
         self,
         watchlist: list[str],
@@ -607,6 +626,13 @@ class TradingApp:
         to ensure all cleanup runs even if individual steps fail.
         """
         self.log.info("shutdown.starting")
+
+        # Stop the scheduler first so no new pipeline runs start mid-shutdown.
+        if self.scheduler is not None:
+            try:
+                await self.scheduler.stop()
+            except Exception:
+                self.log.warning("shutdown.scheduler_failed", exc_info=True)
 
         # Phase 8: Cancel Slack bot background task
         if self._slack_bot_task is not None:
