@@ -1,32 +1,31 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 
 import { WsProvider } from "@/components/providers/ws-provider";
 import { NavSidebar } from "@/components/nav-sidebar";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+import { StatusBar } from "@/components/operator/status-bar";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
+// Editorial display face: italic for emphasis, regular for headlines.
+// Pairs with the mono everywhere to give the system literary gravitas
+// rather than terminal coldness alone.
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif",
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+});
+
 export const metadata: Metadata = {
-  title: "Trading Dashboard",
-  description: "Real-time options trading dashboard",
+  title: "Operator — Trading Console",
+  description: "Mission console for an autonomous options trading system",
 };
 
-/**
- * Root layout -- Server Component (no client directive).
- *
- * Client-side interactivity is delegated to child client components:
- * - NavSidebar: navigation with active link highlighting via usePathname
- * - WsProvider: WebSocket connection lifecycle via useWebSocket hook
- */
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -35,12 +34,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} dark`}
+      className={`${geistMono.variable} ${instrumentSerif.variable} dark`}
     >
       <body className="bg-background text-foreground antialiased">
-        <div className="grid grid-cols-[240px_1fr] min-h-screen">
+        <StatusBar />
+        <div className="grid grid-cols-[176px_1fr] min-h-[calc(100vh-2.25rem)]">
           <NavSidebar />
-          <main className="p-6 overflow-auto">
+          <main className="overflow-auto border-l border-rule">
             <WsProvider>{children}</WsProvider>
           </main>
         </div>

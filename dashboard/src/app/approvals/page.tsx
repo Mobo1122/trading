@@ -3,68 +3,68 @@
 import { useEffect } from "react";
 import { useApprovalsStore } from "@/stores/approvals-store";
 import { ApprovalCard } from "@/components/approvals/approval-card";
+import { PageHeader, PageMeta } from "@/components/operator/page-header";
 import { dashboardWS } from "@/lib/ws-client";
 
-/**
- * Approval queue page displaying pending trade approvals.
- *
- * Fetches pending approvals on mount, subscribes to the WebSocket
- * 'approvals' channel for real-time updates, and renders each
- * approval as an interactive card with approve/reject buttons.
- */
 export default function ApprovalsPage() {
   const { approvals, loading, error, fetchApprovals, resolveApproval } =
     useApprovalsStore();
 
   useEffect(() => {
     fetchApprovals();
-
-    // Subscribe to WebSocket approvals channel for real-time updates
     dashboardWS.subscribe("approvals");
-
     return () => {
       dashboardWS.unsubscribe("approvals");
     };
   }, [fetchApprovals]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">
-          Pending Approvals
-          {approvals.length > 0 && (
-            <span className="ml-2 text-base font-normal text-muted-foreground">
-              ({approvals.length})
-            </span>
-          )}
-        </h1>
-      </div>
-
-      {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
-          {error}
-        </div>
-      )}
-
-      {loading && approvals.length === 0 && (
-        <p className="text-muted-foreground">Loading approvals...</p>
-      )}
-
-      {!loading && approvals.length === 0 && !error && (
-        <div className="rounded-md border border-dashed p-8 text-center text-muted-foreground">
-          No pending approvals. Trades below auto-execute thresholds are
-          processed automatically.
-        </div>
-      )}
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-        {approvals.map((approval) => (
-          <ApprovalCard
-            key={approval.approvalId}
-            approval={approval}
-            onResolve={resolveApproval}
+    <div className="rise px-8 sm:px-10 py-10 max-w-[1280px]">
+      <PageHeader
+        number="04"
+        section="Operator Gate"
+        title="Pending Approvals"
+        lede="Trades that exceed the auto-execution thresholds — they wait here for the operator to confirm or reject."
+        meta={
+          <PageMeta
+            label="Queue"
+            value={`${approvals.length} waiting`}
           />
-        ))}
+        }
+      />
+
+      <div className="mt-10 space-y-6">
+        {error && (
+          <div className="border border-negative/40 bg-negative/5 px-5 py-4">
+            <div className="eyebrow text-negative">Error</div>
+            <p className="mt-2 text-xs text-negative">{error}</p>
+          </div>
+        )}
+
+        {loading && approvals.length === 0 ? (
+          <div className="border border-rule px-6 py-16 text-center">
+            <div className="eyebrow caret">Loading</div>
+          </div>
+        ) : approvals.length === 0 && !error ? (
+          <div className="border border-rule px-6 py-16 text-center">
+            <div className="eyebrow">Queue Empty</div>
+            <p className="mt-3 max-w-md mx-auto font-display italic text-[15px] leading-snug text-muted-foreground">
+              No trades currently require operator review. Anything below the
+              auto-execution thresholds is processed without a human in the
+              loop.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+            {approvals.map((approval) => (
+              <ApprovalCard
+                key={approval.approvalId}
+                approval={approval}
+                onResolve={resolveApproval}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

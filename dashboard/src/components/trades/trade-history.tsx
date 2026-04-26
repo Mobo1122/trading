@@ -82,8 +82,8 @@ export function TradeHistory({
             const isExpanded = expandedRow === trade.orderId;
             const actionColor =
               trade.action === "BUY"
-                ? "bg-green-500/20 text-green-400 border-green-500/30"
-                : "bg-red-500/20 text-red-400 border-red-500/30";
+                ? "bg-accent/15 text-accent border-accent/30"
+                : "bg-negative/15 text-negative border-negative/30";
 
             return (
               <>

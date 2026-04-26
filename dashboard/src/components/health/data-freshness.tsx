@@ -75,7 +75,7 @@ export function DataFreshness({ freshness }: DataFreshnessProps) {
           return (
             <TableRow
               key={symbol}
-              className={isWarning ? "bg-yellow-950/20" : ""}
+              className={isWarning ? "bg-accent/5" : ""}
             >
               <TableCell className="font-mono font-medium">
                 {symbol}

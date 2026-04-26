@@ -82,8 +82,8 @@ export function ApprovalCard({
           </span>
           {isPending && !isExpired && (
             <span
-              className={`font-mono font-medium ${
-                remainingSeconds < 60 ? "text-red-500" : "text-muted-foreground"
+              className={`tnum font-medium ${
+                remainingSeconds < 60 ? "text-negative" : "text-muted-foreground"
               }`}
             >
               {formatCountdown(remainingSeconds)} remaining
@@ -121,17 +121,16 @@ export function ApprovalCard({
           <Button
             onClick={handleApprove}
             disabled={resolving}
-            className="flex-1 bg-green-600 text-white hover:bg-green-700"
+            className="flex-1 bg-accent text-accent-foreground hover:bg-accent/85 tracking-[0.18em] uppercase text-[11px]"
           >
-            {resolving ? "Resolving..." : "Approve"}
+            {resolving ? "Resolving" : "Approve"}
           </Button>
           <Button
-            variant="destructive"
             onClick={handleReject}
             disabled={resolving}
-            className="flex-1"
+            className="flex-1 bg-transparent border border-rule text-foreground hover:border-negative hover:text-negative tracking-[0.18em] uppercase text-[11px]"
           >
-            {resolving ? "Resolving..." : "Reject"}
+            {resolving ? "Resolving" : "Reject"}
           </Button>
         </CardFooter>
       )}

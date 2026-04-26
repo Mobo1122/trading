@@ -40,8 +40,8 @@ export function TradeContext({ context }: { context: ApprovalContext }) {
         <div key={row.label} className="contents">
           <span className="text-muted-foreground">{row.label}</span>
           <span
-            className={`text-right font-medium ${
-              row.highlight ? "text-red-500" : ""
+            className={`text-right tnum ${
+              row.highlight ? "text-negative" : ""
             }`}
           >
             {row.value}

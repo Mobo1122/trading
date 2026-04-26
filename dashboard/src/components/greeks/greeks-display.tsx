@@ -1,109 +1,119 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGreeksStore } from "@/stores/greeks-store";
 
 /**
- * Color thresholds for Greek value severity indicators.
+ * Greek severity tier — three signal colors instead of green/yellow/red.
  *
- * Green: within safe range (normal operation).
- * Yellow: approaching risk limits (attention needed).
- * Red: beyond safe thresholds (risk limit proximity).
+ *   nominal  → cyan (machine)  — within safe range
+ *   warning  → amber (accent)  — approaching limits
+ *   critical → magenta (negative) — beyond thresholds
  */
-function getGreekColor(
-  name: string,
-  value: number
-): "text-green-400" | "text-yellow-400" | "text-red-400" {
-  const abs = Math.abs(value);
+type Tier = "nominal" | "warning" | "critical";
 
+function getGreekTier(name: string, value: number): Tier {
+  const abs = Math.abs(value);
   switch (name) {
     case "Delta":
-      if (abs > 1000) return "text-red-400";
-      if (abs > 500) return "text-yellow-400";
-      return "text-green-400";
+      if (abs > 1000) return "critical";
+      if (abs > 500) return "warning";
+      return "nominal";
     case "Gamma":
-      if (abs > 200) return "text-red-400";
-      if (abs > 100) return "text-yellow-400";
-      return "text-green-400";
+      if (abs > 200) return "critical";
+      if (abs > 100) return "warning";
+      return "nominal";
     case "Theta":
-      if (abs > 500) return "text-red-400";
-      if (abs > 250) return "text-yellow-400";
-      return "text-green-400";
+      if (abs > 500) return "critical";
+      if (abs > 250) return "warning";
+      return "nominal";
     case "Vega":
-      if (abs > 1000) return "text-red-400";
-      if (abs > 500) return "text-yellow-400";
-      return "text-green-400";
+      if (abs > 1000) return "critical";
+      if (abs > 500) return "warning";
+      return "nominal";
     default:
-      return "text-green-400";
+      return "nominal";
   }
 }
 
+const TIER_DOT: Record<Tier, string> = {
+  nominal: "bg-machine",
+  warning: "bg-accent",
+  critical: "bg-negative",
+};
+
+const TIER_TEXT: Record<Tier, string> = {
+  nominal: "text-machine",
+  warning: "text-accent",
+  critical: "text-negative",
+};
+
+const TIER_LABEL: Record<Tier, string> = {
+  nominal: "Nominal",
+  warning: "Warning",
+  critical: "Critical",
+};
+
 /**
- * Status dot icon for Greek severity level.
+ * Editorial Greek panel: tracked-out label, oversize tabular value,
+ * status dot + tier label below. Four panels across, separated by
+ * hairline rules.
  */
-function StatusDot({ color }: { color: string }) {
+function GreekPanel({
+  name,
+  value,
+  isLast,
+}: {
+  name: string;
+  value: number | null;
+  isLast: boolean;
+}) {
+  const tier = value == null ? "nominal" : getGreekTier(name, value);
+  const display = value == null ? "—" : value.toFixed(2);
+
   return (
-    <span
-      className={`inline-block h-2 w-2 rounded-full ${color.replace("text-", "bg-")}`}
-    />
+    <div
+      className={`flex flex-col justify-between gap-6 px-6 py-7 ${
+        isLast ? "" : "lg:border-r lg:border-rule"
+      } border-b border-rule lg:border-b-0`}
+    >
+      <div>
+        <div className="eyebrow">{name}</div>
+        <div
+          className={`mt-3 font-mono tabular-nums tracking-tight text-[40px] sm:text-[48px] leading-none ${TIER_TEXT[tier]}`}
+        >
+          {display}
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className={`h-1.5 w-1.5 ${TIER_DOT[tier]}`} aria-hidden />
+        <span className="eyebrow text-muted-foreground">
+          {TIER_LABEL[tier]}
+        </span>
+      </div>
+    </div>
   );
 }
 
-/**
- * Single Greek metric card displaying name, value, and color indicator.
- */
-function GreekCard({ name, value }: { name: string; value: number }) {
-  const color = getGreekColor(name, value);
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <StatusDot color={color} />
-          {name}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className={`text-2xl font-mono font-semibold ${color}`}>
-          {value.toFixed(2)}
-        </p>
-      </CardContent>
-    </Card>
-  );
-}
-
-/**
- * Portfolio Greeks display with 4 metric cards (delta, gamma, theta, vega).
- *
- * Reads from the Zustand greeks store which is populated by the greeks
- * page via polling and WebSocket updates.
- */
 export function GreeksDisplay() {
   const portfolioGreeks = useGreeksStore((s) => s.portfolioGreeks);
 
-  if (!portfolioGreeks) {
-    return (
-      <div className="grid grid-cols-2 gap-4">
-        {["Delta", "Gamma", "Theta", "Vega"].map((name) => (
-          <Card key={name}>
-            <CardHeader>
-              <CardTitle className="text-sm">{name}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm">Awaiting data...</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
+  const greeks: { name: string; value: number | null }[] = [
+    { name: "Delta", value: portfolioGreeks?.delta ?? null },
+    { name: "Gamma", value: portfolioGreeks?.gamma ?? null },
+    { name: "Theta", value: portfolioGreeks?.theta ?? null },
+    { name: "Vega", value: portfolioGreeks?.vega ?? null },
+  ];
 
   return (
-    <div className="grid grid-cols-2 gap-4">
-      <GreekCard name="Delta" value={portfolioGreeks.delta} />
-      <GreekCard name="Gamma" value={portfolioGreeks.gamma} />
-      <GreekCard name="Theta" value={portfolioGreeks.theta} />
-      <GreekCard name="Vega" value={portfolioGreeks.vega} />
+    <div className="grid grid-cols-1 lg:grid-cols-4 border border-rule">
+      {greeks.map((g, i) => (
+        <GreekPanel
+          key={g.name}
+          name={g.name}
+          value={g.value}
+          isLast={i === greeks.length - 1}
+        />
+      ))}
     </div>
   );
 }

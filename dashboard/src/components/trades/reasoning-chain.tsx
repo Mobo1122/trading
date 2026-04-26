@@ -9,12 +9,15 @@ import type { ReasoningStep } from "@/types";
  * Each agent in the pipeline gets a distinct color for visual
  * identification in the reasoning chain timeline.
  */
+/* All agents share the cyan "machine" signal — they're all the same
+ * autonomous system speaking. Differentiation by agent name is enough;
+ * adding 5 hue variations would dilute the palette. */
 const AGENT_COLORS: Record<string, string> = {
-  scanner: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  strategist: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  risk_manager: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  executor: "bg-green-500/20 text-green-400 border-green-500/30",
-  regime_detector: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
+  scanner: "bg-machine/15 text-machine border-machine/30",
+  strategist: "bg-machine/15 text-machine border-machine/30",
+  risk_manager: "bg-machine/15 text-machine border-machine/30",
+  executor: "bg-machine/15 text-machine border-machine/30",
+  regime_detector: "bg-machine/15 text-machine border-machine/30",
 };
 
 /**

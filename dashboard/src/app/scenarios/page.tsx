@@ -3,19 +3,10 @@
 import { useState } from "react";
 import { ScenarioForm } from "@/components/scenarios/scenario-form";
 import { ScenarioResults } from "@/components/scenarios/scenario-results";
+import { PageHeader, PageMeta } from "@/components/operator/page-header";
 import { runScenario } from "@/lib/api";
 import type { ScenarioResponse } from "@/types";
 
-/**
- * Scenario Analysis page.
- *
- * Allows the user to specify what-if parameters (underlying price
- * change, IV change, days forward) and see the projected impact
- * on their portfolio using Black-Scholes re-pricing.
- *
- * Calls POST /api/scenarios on the backend which runs the scenario
- * engine against current positions.
- */
 export default function ScenariosPage() {
   const [result, setResult] = useState<ScenarioResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -28,7 +19,6 @@ export default function ScenariosPage() {
   }) {
     setLoading(true);
     setError(null);
-
     try {
       const response = await runScenario({
         underlyingChangePct: params.underlyingChangePct,
@@ -47,33 +37,36 @@ export default function ScenariosPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Scenario Analysis
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          What-if analysis: see how your portfolio responds to market changes
-        </p>
-      </div>
+    <div className="rise px-8 sm:px-10 py-10 max-w-[1280px]">
+      <PageHeader
+        number="06"
+        section="What-If"
+        title="Scenarios"
+        lede="Project the book against shocks — move the underlying, move volatility, advance the clock — and watch the marks adjust."
+        meta={<PageMeta label="Engine" value="black-scholes" />}
+      />
 
-      <div className="grid gap-6 lg:grid-cols-[400px_1fr]">
+      <div className="mt-10 grid gap-8 lg:grid-cols-[380px_1fr]">
         <div>
           <ScenarioForm onSubmit={handleSubmit} loading={loading} />
         </div>
 
         <div>
           {error && (
-            <p className="text-sm text-red-500 mb-4">{error}</p>
+            <div className="mb-4 border border-negative/40 bg-negative/5 px-5 py-4">
+              <div className="eyebrow text-negative">Error</div>
+              <p className="mt-2 text-xs text-negative">{error}</p>
+            </div>
           )}
 
           {result ? (
             <ScenarioResults result={result} />
           ) : (
-            <div className="flex items-center justify-center h-64 text-muted-foreground">
-              <p>
-                Configure scenario parameters and click &quot;Run
-                Scenario&quot; to analyze your portfolio.
+            <div className="border border-rule px-6 py-16 text-center">
+              <div className="eyebrow">Awaiting Input</div>
+              <p className="mt-3 max-w-md mx-auto font-display italic text-[15px] leading-snug text-muted-foreground">
+                Configure scenario parameters at left and run to project the
+                portfolio&apos;s response.
               </p>
             </div>
           )}

@@ -7,25 +7,10 @@ import { getHealth } from "@/lib/api";
 import { useHealthStore } from "@/stores/health-store";
 import { HealthPanel } from "@/components/health/health-panel";
 import { DataFreshness } from "@/components/health/data-freshness";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { PageHeader, PageMeta } from "@/components/operator/page-header";
 
-/** Polling interval for health status in milliseconds. */
 const POLL_INTERVAL_MS = 10_000;
 
-/**
- * Health monitoring page.
- *
- * Fetches initial health status from the REST API, then polls
- * every 10 seconds for updates. Also subscribes to the health
- * store for real-time WebSocket updates (whichever arrives first
- * wins). Renders HealthPanel for connection badges and agent
- * activity, and DataFreshness for per-symbol staleness.
- */
 export default function HealthPage() {
   const storeHealth = useHealthStore((s) => s.health);
   const setStoreHealth = useHealthStore((s) => s.setHealth);
@@ -40,70 +25,63 @@ export default function HealthPage() {
       setError(null);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to fetch health",
+        err instanceof Error ? err.message : "Failed to fetch health"
       );
     }
   }, [setStoreHealth]);
 
-  // Initial fetch + polling
   useEffect(() => {
     fetchHealth();
     const timer = setInterval(fetchHealth, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
   }, [fetchHealth]);
 
-  // Merge WebSocket updates from the store
   const current = storeHealth ?? health;
 
-  if (error && !current) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold tracking-tight">System Health</h1>
-        <Card>
-          <CardContent className="py-8">
-            <p className="text-center text-sm text-destructive">{error}</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!current) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold tracking-tight">System Health</h1>
-        <Card>
-          <CardContent className="py-8">
-            <p className="text-center text-sm text-muted-foreground">
-              Loading health status...
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">System Health</h1>
-        {error && (
-          <span className="text-xs text-yellow-400">
-            Last poll failed -- showing cached data
-          </span>
+    <div className="rise px-8 sm:px-10 py-10 max-w-[1280px]">
+      <PageHeader
+        number="05"
+        section="Mission Console"
+        title="System Health"
+        lede="The console reports on the wellbeing of every subsystem the operator depends on."
+        meta={<PageMeta label="Polling" value="every 10s" />}
+      />
+
+      <div className="mt-10">
+        {error && !current ? (
+          <div className="border border-negative/40 px-6 py-12 text-center">
+            <div className="eyebrow text-negative">Console Error</div>
+            <p className="mt-3 text-xs text-negative">{error}</p>
+          </div>
+        ) : !current ? (
+          <div className="border border-rule px-6 py-16 text-center">
+            <div className="eyebrow caret">Probing</div>
+            <p className="mt-3 text-xs text-muted-foreground">
+              awaiting first health report
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-12">
+            <HealthPanel health={current} />
+
+            <div>
+              <div className="border-b border-rule pb-3">
+                <div className="eyebrow">Data Stream Freshness</div>
+              </div>
+              <div className="mt-4">
+                <DataFreshness freshness={current.dataFreshness ?? {}} />
+              </div>
+            </div>
+
+            {error && (
+              <p className="border-t border-rule pt-4 text-[10px] tracking-[0.18em] uppercase text-accent">
+                last poll failed — showing cached data
+              </p>
+            )}
+          </div>
         )}
       </div>
-
-      <HealthPanel health={current} />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Data Stream Freshness</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DataFreshness freshness={current.dataFreshness ?? {}} />
-        </CardContent>
-      </Card>
     </div>
   );
 }

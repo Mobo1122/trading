@@ -2,40 +2,25 @@
 
 import { useEffect } from "react";
 import { GreeksDisplay } from "@/components/greeks/greeks-display";
+import { PageHeader, PageMeta } from "@/components/operator/page-header";
 import { useGreeksStore } from "@/stores/greeks-store";
 import { getGreeks } from "@/lib/api";
 
-/**
- * Portfolio Greeks page.
- *
- * Fetches initial Greeks on mount and polls every 10 seconds as a
- * WebSocket fallback. The WebSocket portfolio_greeks channel provides
- * real-time pushes, but polling ensures data freshness if WS delivery
- * is delayed or missed.
- */
 export default function GreeksPage() {
   const setPortfolioGreeks = useGreeksStore((s) => s.setPortfolioGreeks);
 
   useEffect(() => {
     let mounted = true;
-
     async function fetchGreeks() {
       try {
         const greeks = await getGreeks();
-        if (mounted) {
-          setPortfolioGreeks(greeks);
-        }
+        if (mounted) setPortfolioGreeks(greeks);
       } catch {
-        // Non-fatal: will retry on next poll interval
+        /* non-fatal: poll will retry */
       }
     }
-
-    // Initial fetch
     fetchGreeks();
-
-    // Poll every 10 seconds as WebSocket fallback
     const interval = setInterval(fetchGreeks, 10_000);
-
     return () => {
       mounted = false;
       clearInterval(interval);
@@ -43,16 +28,17 @@ export default function GreeksPage() {
   }, [setPortfolioGreeks]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Portfolio Greeks
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Real-time aggregated Greeks exposure across all positions
-        </p>
+    <div className="rise px-8 sm:px-10 py-10 max-w-[1280px]">
+      <PageHeader
+        number="02"
+        section="Risk Surface"
+        title="Portfolio Greeks"
+        lede="The aggregate exposure of the book to delta, gamma, theta, and vega — refreshed every ten seconds."
+        meta={<PageMeta label="Updated" value="live · 10s poll" />}
+      />
+      <div className="mt-10">
+        <GreeksDisplay />
       </div>
-      <GreeksDisplay />
     </div>
   );
 }
