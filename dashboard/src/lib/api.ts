@@ -9,7 +9,15 @@ import type {
   ScenarioResponse,
 } from "@/types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+function resolveApiUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_API_URL;
+  if (explicit) return explicit;
+  // No explicit URL: use origin-relative (browser) or localhost fallback (SSR).
+  if (typeof window !== "undefined") return "";
+  return "http://localhost:8000";
+}
+
+const API_URL = resolveApiUrl();
 
 /**
  * Recursively transform snake_case object keys to camelCase.

@@ -1,0 +1,26 @@
+{$PUBLIC_HOST} {
+	# WebSocket endpoint (matched first; Caddy auto-detects Upgrade header)
+	handle /ws {
+		reverse_proxy dashboard-api:8000
+	}
+
+	# REST API
+	handle /api/* {
+		reverse_proxy dashboard-api:8000
+	}
+
+	# Everything else: Next.js dashboard
+	handle {
+		reverse_proxy dashboard-ui:3000
+	}
+
+	encode gzip zstd
+
+	# Standard security headers
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+}

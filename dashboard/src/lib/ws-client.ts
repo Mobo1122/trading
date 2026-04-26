@@ -4,7 +4,17 @@ import { useGreeksStore } from "@/stores/greeks-store";
 import { useHealthStore } from "@/stores/health-store";
 import type { WSMessage, Position, HealthStatus, Greeks } from "@/types";
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws";
+function resolveWsUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_WS_URL;
+  if (explicit) return explicit;
+  if (typeof window !== "undefined") {
+    const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${proto}//${window.location.host}/ws`;
+  }
+  return "ws://localhost:8000/ws";
+}
+
+const WS_URL = resolveWsUrl();
 const RECONNECT_DELAY = 3000;
 const PING_INTERVAL = 30000;
 

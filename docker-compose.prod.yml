@@ -54,18 +54,19 @@ services:
     restart: unless-stopped
 
   # ── Dashboard API (FastAPI + WebSocket) ────────────────────────
+  # Not exposed externally; Caddy proxies /api/* and /ws to it.
   dashboard-api:
     build: .
     command: >-
       uvicorn trading.dashboard.server:create_app
       --factory --host 0.0.0.0 --port 8000
-    ports:
-      - "${DASHBOARD_API_PORT:-8000}:8000"
+    expose:
+      - "8000"
     environment:
       TRADING_MODE: ${TRADING_MODE:-paper}
       TRADING__DATABASE__URL: postgresql+asyncpg://trading:${POSTGRES_PASSWORD:-trading}@timescaledb:5432/trading
       TRADING__REDIS__URL: redis://redis:6379/0
-      TRADING__DASHBOARD__CORS_ORIGINS: '["http://localhost:3000","http://${VPS_HOST:-localhost}:3000","http://${VPS_HOST:-localhost}"]'
+      TRADING__DASHBOARD__CORS_ORIGINS: '["https://${PUBLIC_HOST:-trading.moboabayomi.com}"]'
       TRADING__LOGGING__FORMAT: json
     depends_on:
       db-migrate:
@@ -75,14 +76,38 @@ services:
     restart: unless-stopped
 
   # ── Dashboard UI (Next.js) ─────────────────────────────────────
+  # Not exposed externally; Caddy proxies / to it.
+  # Build args left empty so the SPA uses origin-relative URLs.
   dashboard-ui:
     build:
       context: ./dashboard
       args:
-        NEXT_PUBLIC_API_URL: http://${VPS_HOST:-localhost}:${DASHBOARD_API_PORT:-8000}
-        NEXT_PUBLIC_WS_URL: ws://${VPS_HOST:-localhost}:${DASHBOARD_API_PORT:-8000}/ws
-    ports:
-      - "${DASHBOARD_UI_PORT:-3000}:3000"
+        NEXT_PUBLIC_API_URL: ""
+        NEXT_PUBLIC_WS_URL: ""
+    expose:
+      - "3000"
     depends_on:
       - dashboard-api
     restart: unless-stopped
+
+  # ── Caddy reverse proxy + automatic HTTPS ──────────────────────
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST:-trading.moboabayomi.com}
+    depends_on:
+      - dashboard-ui
+      - dashboard-api
+    restart: unless-stopped
+
+volumes:
+  caddy-data:
+  caddy-config:
