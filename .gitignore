@@ -42,3 +42,6 @@ Thumbs.db
 dashboard/node_modules/
 dashboard/.next/
 dashboard/.env.local
+
+# IBC credentials (copy ibc-config.ini.example)
+ibc-config.ini
